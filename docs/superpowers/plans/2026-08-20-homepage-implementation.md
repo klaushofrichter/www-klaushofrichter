@@ -21,6 +21,7 @@
 - Scrollbar only appears when content overflows (default browser behavior — no extra CSS needed to achieve this) but must be styled to match the dark theme (`::-webkit-scrollbar` + Firefox `scrollbar-color`/`scrollbar-width`).
 - Refresh button: small circular icon (⟳), fixed top-right, low default opacity, full opacity on hover.
 - The page's own social-preview `og:image` (added mid-plan, not in the original spec doc) is a static, controller-generated 1200x630 PNG at `assets/og-image.png`, referenced via the absolute URL `https://www.klaushofrichter.net/assets/og-image.png` (constant `SITE_URL` in `page.ts`) — distinct from the per-card downloaded images in `data/images/`.
+- Favicon (added mid-plan): three static PNGs in `assets/` — `favicon-32x32.png`, `favicon-16x16.png`, `apple-touch-icon.png` — generated from a real photo the user supplied via Google Drive, served through the same `/assets` static mount as `og-image.png`.
 
 ---
 
@@ -629,6 +630,9 @@ export function renderPage(): string {
     <meta property="og:image" content="${SITE_URL}/assets/og-image.png" />
     <meta property="og:url" content="${SITE_URL}/" />
     <meta property="og:type" content="website" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png" />
     <style>${PAGE_CSS}</style>
   </head>
   <body>
