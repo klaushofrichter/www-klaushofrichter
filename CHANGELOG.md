@@ -7,7 +7,17 @@ Deployment isn't versioned (every merge to `production` ships automatically,
 image-tagged with the exact git SHA — see `README.md` "Deployment") — entries
 here are dated by when they shipped, not by a semver bump.
 
-## [Unreleased]
+## Unreleased
+
+### Added
+
+- Replaced the placeholder static page with the real homepage: about
+  section, responsive card grid (LinkedIn, GitHub, Portfolio 2017,
+  Instagram, Three Puppies, Medium), each card showing a hero image
+  fetched from the target site's `og:image` and refreshed daily via an
+  in-process cron job (also triggerable on demand via the page's ⟳
+  button / `POST /refresh`).
+- `GET /images/:id` route to serve downloaded hero images.
 
 ## 2026-08-20
 
