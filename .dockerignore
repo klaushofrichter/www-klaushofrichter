@@ -8,3 +8,4 @@ playwright-report
 .git
 *.md
 !CHANGELOG.md
+data
