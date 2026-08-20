@@ -1,0 +1,27 @@
+{
+  "name": "www-klaushofrichter",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static site for www.klaushofrichter.net, served by Express on Knative/k3s.",
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "dev": "tsx src/server.ts",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.47.0",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.14.10",
+    "@types/supertest": "^6.0.2",
+    "supertest": "^7.0.0",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
+  }
+}
