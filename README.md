@@ -31,14 +31,24 @@ npm run dev
 
 ## Image refresh
 
-Each card's hero image comes from the target URL's `og:image` meta tag,
-downloaded to local disk on container startup and re-fetched once a day
-(06:00 UTC) via an in-process `node-cron` job — no persistent storage, no
-separate CronJob resource; images just repopulate on every restart. A
-link whose `og:image` can't be fetched (some target sites may block
-non-browser requests) falls back to a plain gradient card instead
-of a broken image. See `docs/superpowers/specs/2026-08-20-homepage-design.md`
-for the full design.
+Each card's hero image resolves in this order:
+
+1. **Static card asset** — `assets/cards/<id>.png`, a hand-curated screenshot
+   committed to the repo (currently all 6 links have one). If present, it's
+   used as-is: no network fetch at startup, no daily cron entry for that
+   link. Ships baked into the Docker image.
+2. **Dynamic `og:image` fetch** — for any link without a static asset, the
+   target URL's `og:image` meta tag is fetched and downloaded to local disk
+   on container startup and re-fetched once a day (06:00 UTC) via an
+   in-process `node-cron` job — no persistent storage, no separate CronJob
+   resource; images just repopulate on every restart.
+3. **Gradient fallback** — if neither of the above produced an image (no
+   static asset, and the dynamic fetch failed — some target sites block
+   non-browser requests), the card renders a plain gradient instead of a
+   broken image.
+
+The card image is a clickable link to the card's URL. See
+`docs/superpowers/specs/2026-08-20-homepage-design.md` for the full design.
 
 ## End-to-end smoke test
 

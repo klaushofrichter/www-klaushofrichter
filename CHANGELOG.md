@@ -23,6 +23,13 @@ here are dated by when they shipped, not by a semver bump.
   backed by a new `/assets/*` static mount (`express.static`) serving
   `assets/og-image.png`, `assets/favicon-16x16.png`,
   `assets/favicon-32x32.png`, and `assets/apple-touch-icon.png`.
+- Static card screenshots: `assets/cards/<id>.png`, one hand-curated
+  1200x630 screenshot per link (all 6 currently), take priority over the
+  dynamic `og:image` fetch — a link with a static asset gets no startup
+  fetch and no daily cron entry at all. The dynamic fetch/cron mechanism
+  stays in place as the fallback for any link added later without one.
+  Card images are now clickable (link to the card's URL), and cards are
+  25% wider (`minmax(220px,...)` → `minmax(275px,...)`).
 
 ## 2026-08-20
 

@@ -245,3 +245,21 @@ outcome, not an error state a user would notice.
   served via a new `express.static` mount at `/assets` in `app.ts` —
   static, checked-in files, unrelated to the dynamically downloaded
   `data/images/` hero images described above.
+- **Static per-card screenshots now take priority over the dynamic
+  `og:image` fetch — added after this spec was written.** Unauthenticated
+  `og:image` fetches for LinkedIn/Instagram hit their login walls, and a
+  couple of other targets (mystrikingly.com, medium.com) initially returned
+  bot-detection blocks to a plain fetch. Rather than rely on that fragile,
+  unauthenticated path, `assets/cards/<id>.png` holds a hand-curated
+  1200x630 screenshot per link (all 6 currently have one, captured via
+  Playwright/Chromium — and for LinkedIn, via a real logged-in browser
+  session, since the anonymous view is a permanent login wall). `src/staticCards.ts`
+  exposes `hasStaticCard(id)`/`staticCardUrl(id)`; `refreshImages.ts` skips
+  any link with a static card entirely (no startup fetch, no daily cron
+  entry for it), and `page.ts` resolves each card's image in the order
+  static asset → dynamic `/images/:id` → gradient fallback. The dynamic
+  fetch/cron path from the section above is unchanged and still applies to
+  any future link added without a static asset. The card image area is now
+  wrapped in a link to the card's URL (previously only the small text link
+  at the bottom was clickable), and the card grid is 25% wider
+  (`minmax(220px, 1fr)` → `minmax(275px, 1fr)`).

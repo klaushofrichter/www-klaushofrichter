@@ -3,6 +3,7 @@ import path from 'path';
 import cron from 'node-cron';
 import { links } from './links';
 import { fetchOgImage, downloadImage } from './ogImage';
+import { hasStaticCard } from './staticCards';
 
 export const IMAGES_DIR = path.join(process.cwd(), 'data', 'images');
 const DAILY_CRON_SCHEDULE = '0 6 * * *';
@@ -37,7 +38,8 @@ async function refreshOne(id: string, url: string): Promise<void> {
 
 export async function refreshAllImages(): Promise<void> {
   fs.mkdirSync(IMAGES_DIR, { recursive: true });
-  await Promise.all(links.map((link) => refreshOne(link.id, link.url)));
+  const dynamicLinks = links.filter((link) => !hasStaticCard(link.id));
+  await Promise.all(dynamicLinks.map((link) => refreshOne(link.id, link.url)));
 }
 
 export function scheduleDailyRefresh(): void {

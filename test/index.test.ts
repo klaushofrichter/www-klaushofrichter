@@ -9,6 +9,11 @@ vi.mock('../src/refreshImages', () => ({
   getImageContentType: vi.fn().mockReturnValue(undefined),
 }));
 
+vi.mock('../src/staticCards', () => ({
+  hasStaticCard: vi.fn().mockReturnValue(false),
+  staticCardUrl: vi.fn((id: string) => `/assets/cards/${id}.png`),
+}));
+
 import { refreshAllImages } from '../src/refreshImages';
 import { createApp } from '../src/app';
 
