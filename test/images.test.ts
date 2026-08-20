@@ -16,4 +16,11 @@ describe('GET /images/:id', () => {
 
     expect(response.status).toBe(404);
   });
+
+  it('returns 404 for an id containing path traversal characters', async () => {
+    const app = createApp();
+    const response = await request(app).get('/images/..%2F..%2Fetc%2Fpasswd');
+
+    expect(response.status).toBe(404);
+  });
 });
