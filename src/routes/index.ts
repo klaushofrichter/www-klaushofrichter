@@ -18,6 +18,12 @@ indexRouter.post('/refresh', async (_req: Request, res: Response) => {
     return;
   }
   lastRefresh = now;
-  await refreshAllImages();
-  res.status(200).json({ status: 'ok' });
+  try {
+    await refreshAllImages();
+    res.status(200).json({ status: 'ok' });
+  } catch (err) {
+    console.error('Manual image refresh failed', err);
+    lastRefresh = 0;
+    res.status(500).json({ error: 'refresh failed' });
+  }
 });

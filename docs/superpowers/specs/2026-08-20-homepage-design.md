@@ -217,3 +217,31 @@ outcome, not an error state a user would notice.
   right-sized down from the original placeholder in the previous work)
   should remain sufficient; revisit only if the daily refresh proves
   otherwise.
+
+## Implementation notes (post-design)
+
+- **`downloadImage` return type and filenames deviated from this spec.**
+  The spec above describes `downloadImage(): Promise<boolean>` writing to
+  `data/images/<id>.jpg`. The shipped implementation instead returns
+  `Promise<string | null>` — `null` on any failure, otherwise the
+  downloaded image's actual (allowlisted) content-type — and writes to an
+  extensionless `data/images/<id>` path, with `refreshImages.ts` keeping a
+  separate in-memory `Map<id, contentType>` that `GET /images/:id` reads
+  to set the response's `Content-Type` header. This is a deliberate
+  improvement made during implementation: assuming `.jpg`/`image/jpeg` for
+  every downloaded image was incorrect (og:image targets commonly serve
+  PNG, WebP, or GIF), and tracking the real content-type is what makes it
+  possible to safely validate it against an allowlist and serve it back
+  correctly rather than mislabeling non-JPEG images.
+- **og:image social preview + favicons were added after this spec was
+  written.** `views/page.ts` now emits `og:image`/`og:title`/
+  `og:description`/`og:url`/`og:type` meta tags (so links to this page
+  render a rich preview in Slack, iMessage, LinkedIn, etc.) and standard
+  favicon `<link>` tags (16x16, 32x32, apple-touch-icon), added because a
+  personal homepage with no social preview or browser-tab icon reads as
+  unfinished. The backing image files live in `assets/` at the repo root
+  (`assets/og-image.png`, `assets/favicon-16x16.png`,
+  `assets/favicon-32x32.png`, `assets/apple-touch-icon.png`) and are
+  served via a new `express.static` mount at `/assets` in `app.ts` —
+  static, checked-in files, unrelated to the dynamically downloaded
+  `data/images/` hero images described above.

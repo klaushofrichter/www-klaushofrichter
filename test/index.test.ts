@@ -29,6 +29,10 @@ describe('GET /', () => {
     expect(response.text).toContain('Three Puppies');
     expect(response.text).toContain('Medium');
     expect(response.text).toContain('Contact: klaus@klaushofrichter.net');
+    expect(response.text).toContain('og:image');
+    expect(response.text).toContain('og:title');
+    expect(response.text).toContain('apple-touch-icon');
+    expect(response.text).toContain('favicon-32x32.png');
   });
 });
 

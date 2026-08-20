@@ -18,6 +18,11 @@ here are dated by when they shipped, not by a semver bump.
   in-process cron job (also triggerable on demand via the page's ⟳
   button / `POST /refresh`).
 - `GET /images/:id` route to serve downloaded hero images.
+- Social preview support: `og:image`/`og:title`/`og:description`/`og:url`
+  meta tags plus 16x16/32x32/apple-touch favicon `<link>` tags on `GET /`,
+  backed by a new `/assets/*` static mount (`express.static`) serving
+  `assets/og-image.png`, `assets/favicon-16x16.png`,
+  `assets/favicon-32x32.png`, and `assets/apple-touch-icon.png`.
 
 ## 2026-08-20
 

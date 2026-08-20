@@ -17,6 +17,9 @@ background refresh (see "Image refresh" below).
   ⟳ button in the page's top-right corner). Subject to a 60-second
   cooldown; returns `429` if called again too soon.
 - `GET /health` — returns `{"status": "ok", "service": "www-klaushofrichter"}`
+- `/assets/*` — static asset serving for the og:image social-preview
+  image and favicons (`assets/og-image.png`, `assets/favicon-16x16.png`,
+  `assets/favicon-32x32.png`, `assets/apple-touch-icon.png`).
 
 ## Development
 
@@ -32,8 +35,8 @@ Each card's hero image comes from the target URL's `og:image` meta tag,
 downloaded to local disk on container startup and re-fetched once a day
 (06:00 UTC) via an in-process `node-cron` job — no persistent storage, no
 separate CronJob resource; images just repopulate on every restart. A
-link whose `og:image` can't be fetched (LinkedIn and Instagram commonly
-block non-browser requests) falls back to a plain gradient card instead
+link whose `og:image` can't be fetched (some target sites may block
+non-browser requests) falls back to a plain gradient card instead
 of a broken image. See `docs/superpowers/specs/2026-08-20-homepage-design.md`
 for the full design.
 
