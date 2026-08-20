@@ -20,6 +20,7 @@
 - One fixed dark color scheme (no light/dark toggle). Card grid: `grid-template-columns: repeat(auto-fit, minmax(220px, 1fr))` so it reflows to one column on mobile without a separate stylesheet.
 - Scrollbar only appears when content overflows (default browser behavior — no extra CSS needed to achieve this) but must be styled to match the dark theme (`::-webkit-scrollbar` + Firefox `scrollbar-color`/`scrollbar-width`).
 - Refresh button: small circular icon (⟳), fixed top-right, low default opacity, full opacity on hover.
+- The page's own social-preview `og:image` (added mid-plan, not in the original spec doc) is a static, controller-generated 1200x630 PNG at `assets/og-image.png`, referenced via the absolute URL `https://www.klaushofrichter.net/assets/og-image.png` (constant `SITE_URL` in `page.ts`) — distinct from the per-card downloaded images in `data/images/`.
 
 ---
 
@@ -489,6 +490,7 @@ const ABOUT_TITLE = 'Klaus Hofrichter';
 const ABOUT_BODY =
   'Engineer, tinkerer, and occasional puppy photographer. This page collects the places you can find me online — from professional profiles to side projects and creative work.';
 const FOOTER_TEXT = 'Contact: klaus@klaushofrichter.net';
+const SITE_URL = 'https://www.klaushofrichter.net';
 
 function escapeHtml(value: string): string {
   return value
@@ -622,6 +624,11 @@ export function renderPage(): string {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Klaus Hofrichter</title>
+    <meta property="og:title" content="Klaus Hofrichter" />
+    <meta property="og:description" content="${escapeHtml(ABOUT_BODY)}" />
+    <meta property="og:image" content="${SITE_URL}/assets/og-image.png" />
+    <meta property="og:url" content="${SITE_URL}/" />
+    <meta property="og:type" content="website" />
     <style>${PAGE_CSS}</style>
   </head>
   <body>
@@ -854,6 +861,7 @@ indexRouter.post('/refresh', async (_req: Request, res: Response) => {
 
 ```typescript
 import express, { Express } from 'express';
+import path from 'path';
 import { healthRouter } from './routes/health';
 import { imagesRouter } from './routes/images';
 import { indexRouter } from './routes/index';
@@ -862,10 +870,18 @@ export function createApp(): Express {
   const app = express();
   app.use(healthRouter);
   app.use(imagesRouter);
+  app.use('/assets', express.static(path.join(__dirname, '..', 'assets')));
   app.use(indexRouter);
   return app;
 }
 ```
+
+`assets/` holds only the build-time-baked `og-image.png` (generated once,
+committed to the repo — see Task 9) — unlike `data/images/`, it's static
+content shipped in the image, not runtime-downloaded, so plain
+`express.static` is the right tool here (contrast with the deleted
+`public/` directory, which used to hold the whole page and is now fully
+server-rendered instead).
 
 - [ ] **Step 5: Delete the old static placeholder**
 
@@ -978,9 +994,16 @@ with:
 ```dockerfile
 COPY --from=builder /app/dist ./dist
 COPY CHANGELOG.md ./
+COPY assets ./assets
 RUN mkdir -p /app/data/images && chown -R node:node /app/data
 USER node
 ```
+
+`assets/og-image.png` was generated once during design work and is already
+committed to the repo at this point in the plan (controller-generated,
+matches the site's dark glassmorphism style, referenced by `og:image` in
+Task 5) — this step just needs to ship the existing `assets/` directory
+into the image, not create it.
 
 - [ ] **Step 2: Add `data/` to `.gitignore`**
 
