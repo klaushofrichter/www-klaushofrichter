@@ -1,5 +1,6 @@
 import { links, Link } from '../links';
 import { hasImage } from '../refreshImages';
+import { hasStaticCard, staticCardUrl } from '../staticCards';
 
 const ABOUT_TITLE = 'Klaus Hofrichter';
 const ABOUT_BODY =
@@ -19,13 +20,24 @@ function displayUrl(url: string): string {
   return url.replace(/^https?:\/\//, '').replace(/\/$/, '');
 }
 
+function cardImageSrc(link: Link): string | null {
+  if (hasStaticCard(link.id)) {
+    return staticCardUrl(link.id);
+  }
+  if (hasImage(link.id)) {
+    return `/images/${link.id}`;
+  }
+  return null;
+}
+
 function renderCard(link: Link): string {
-  const imageMarkup = hasImage(link.id)
-    ? `<img src="/images/${link.id}" alt="${escapeHtml(link.title)}" class="card-image-img" />`
+  const imageSrc = cardImageSrc(link);
+  const imageMarkup = imageSrc
+    ? `<img src="${escapeHtml(imageSrc)}" alt="${escapeHtml(link.title)}" class="card-image-img" />`
     : '';
   return `
         <div class="card">
-          <div class="card-image" style="background: ${link.gradient};">${imageMarkup}</div>
+          <a class="card-image" style="background: ${link.gradient};" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer">${imageMarkup}</a>
           <div class="card-body">
             <h3>${escapeHtml(link.title)}</h3>
             <p>${escapeHtml(link.abstract)}</p>
@@ -59,7 +71,7 @@ const PAGE_CSS = `
   .about p { font-size: 14px; line-height: 1.6; opacity: 0.75; margin: 0; }
   .cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(275px, 1fr));
     gap: 18px;
     max-width: 960px;
     margin: 0 auto;
@@ -71,7 +83,7 @@ const PAGE_CSS = `
     border-radius: 14px;
     overflow: hidden;
   }
-  .card-image { height: 110px; display: flex; align-items: center; justify-content: center; }
+  .card-image { height: 110px; display: flex; align-items: center; justify-content: center; text-decoration: none; }
   .card-image-img { width: 100%; height: 100%; object-fit: cover; }
   .card-body { padding: 14px; }
   .card-body h3 { margin: 0; font-size: 14px; }

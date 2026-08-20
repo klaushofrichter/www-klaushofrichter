@@ -5,16 +5,24 @@ vi.mock('../src/ogImage', () => ({
   downloadImage: vi.fn(),
 }));
 
+vi.mock('../src/staticCards', () => ({
+  hasStaticCard: vi.fn().mockReturnValue(false),
+}));
+
 import { fetchOgImage, downloadImage } from '../src/ogImage';
+import { hasStaticCard } from '../src/staticCards';
 import { refreshAllImages, hasImage, getImageContentType, imagePath } from '../src/refreshImages';
 
 const mockedFetchOgImage = vi.mocked(fetchOgImage);
 const mockedDownloadImage = vi.mocked(downloadImage);
+const mockedHasStaticCard = vi.mocked(hasStaticCard);
 
 describe('refreshAllImages', () => {
   beforeEach(() => {
     mockedFetchOgImage.mockReset();
     mockedDownloadImage.mockReset();
+    mockedHasStaticCard.mockReset();
+    mockedHasStaticCard.mockReturnValue(false);
   });
 
   it('downloads an image for every link that has an og:image', async () => {
@@ -46,5 +54,16 @@ describe('refreshAllImages', () => {
     expect(imagePath('linkedin')).toContain('data');
     expect(imagePath('linkedin')).toContain('images');
     expect(imagePath('linkedin')).toContain('linkedin');
+  });
+
+  it('skips fetching for links that have a static card asset', async () => {
+    mockedHasStaticCard.mockImplementation((id: string) => id === 'linkedin');
+    mockedFetchOgImage.mockResolvedValue('https://example.com/hero.jpg');
+    mockedDownloadImage.mockResolvedValue('image/jpeg');
+
+    await refreshAllImages();
+
+    expect(mockedFetchOgImage).not.toHaveBeenCalledWith(expect.stringContaining('linkedin'));
+    expect(mockedFetchOgImage).toHaveBeenCalledTimes(5);
   });
 });
