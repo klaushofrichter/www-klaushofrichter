@@ -1,10 +1,16 @@
 import { test, expect } from '@playwright/test';
 
-test('home page loads and shows the expected content', async ({ page }) => {
+test('home page loads with the about section and all cards', async ({ page }) => {
   const response = await page.goto('/');
   expect(response?.status()).toBe(200);
-  await expect(page.locator('h1')).toHaveText('www.klaushofrichter.net');
-  await expect(page.getByText('Hello from www-klaushofrichter')).toBeVisible();
+  await expect(page.locator('h1')).toHaveText('Klaus Hofrichter');
+  await expect(page.getByText('LinkedIn', { exact: true })).toBeVisible();
+  await expect(page.getByText('GitHub', { exact: true })).toBeVisible();
+  await expect(page.getByText('Portfolio 2017', { exact: true })).toBeVisible();
+  await expect(page.getByText('Instagram', { exact: true })).toBeVisible();
+  await expect(page.getByText('Three Puppies', { exact: true })).toBeVisible();
+  await expect(page.getByText('Medium', { exact: true })).toBeVisible();
+  await expect(page.getByText('Contact: klaus@klaushofrichter.net')).toBeVisible();
 });
 
 test('/health reports ok', async ({ request }) => {

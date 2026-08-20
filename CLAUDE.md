@@ -4,11 +4,12 @@ Operational context for working in this repo.
 
 ## What this is
 
-A small Express/TypeScript static site serving `www.klaushofrichter.net`,
-deployed as a Knative Service on the `kube-setup`-managed k3s cluster (see
-`../kube-setup/CLAUDE.md` for cluster-wide context). Structured to match
-`../steps-service` (same branch/CI/CD pattern), but deliberately simple —
-static HTML plus a `/health` endpoint.
+Klaus Hofrichter's personal homepage — an Express/TypeScript app that
+server-renders an about section, a grid of link cards (each with a
+daily-refreshed hero image from the target site's `og:image`), and a
+footer. Deployed as a Knative Service on the `kube-setup`-managed k3s
+cluster (see `../kube-setup/CLAUDE.md` for cluster-wide context). Design
+rationale lives in `docs/superpowers/specs/2026-08-20-homepage-design.md`.
 
 ## Branches
 

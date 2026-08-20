@@ -2,7 +2,7 @@
   "name": "www-klaushofrichter",
   "version": "1.0.0",
   "private": true,
-  "description": "Static site for www.klaushofrichter.net, served by Express on Knative/k3s.",
+  "description": "Personal homepage for Klaus Hofrichter, served at www.klaushofrichter.net by Express on Knative/k3s.",
   "type": "commonjs",
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -12,12 +12,16 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "express": "^4.19.2"
+    "cheerio": "^1.0.0",
+    "express": "^4.19.2",
+    "express-rate-limit": "^8.6.2",
+    "node-cron": "^3.0.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.47.0",
     "@types/express": "^4.17.21",
     "@types/node": "^20.14.10",
+    "@types/node-cron": "^3.0.11",
     "@types/supertest": "^6.0.2",
     "supertest": "^7.0.0",
     "tsx": "^4.16.2",
