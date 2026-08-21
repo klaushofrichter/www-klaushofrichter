@@ -64,7 +64,7 @@ const PAGE_CSS = `
   .about { max-width: 640px; margin: 0 auto 40px; text-align: center; }
   .about-avatar {
     width: 72px; height: 72px; border-radius: 50%;
-    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    background: url('/assets/apple-touch-icon.png') center / cover;
     margin: 0 auto 16px;
   }
   .about h1 { font-size: 26px; margin: 0 0 10px; }
