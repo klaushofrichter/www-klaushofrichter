@@ -98,15 +98,6 @@ export const links: Link[] = [
     requiresAuth: true,
   },
   {
-    id: 'headlamp-repo',
-    title: 'Headlamp (GitHub)',
-    url: 'https://github.com/kubernetes-sigs/headlamp',
-    abstract: 'Open-source Kubernetes web UI project used for cluster monitoring.',
-    gradient: 'linear-gradient(135deg, #1f2937, #374151)',
-    cardColor: CARD_COLORS.slate,
-    requiresAuth: true,
-  },
-  {
     id: 'grafana',
     title: 'Grafana',
     url: 'https://klaushofrichter.grafana.net/d/kl9nd7q/skylar-technology-node-overview',
@@ -131,6 +122,15 @@ export const links: Link[] = [
     abstract: 'A collection of small deployed apps and demos.',
     gradient: 'linear-gradient(135deg, #6b7280, #9ca3af)',
     cardColor: CARD_COLORS.stone,
+    requiresAuth: true,
+  },
+  {
+    id: 'homeassistant',
+    title: 'Home Assistant',
+    url: 'https://ha.skylar.technology',
+    abstract: 'Home automation dashboard for lights, climate, and devices.',
+    gradient: 'linear-gradient(135deg, #03a9f4, #41bdf5)',
+    cardColor: CARD_COLORS.teal,
     requiresAuth: true,
   },
 ];
