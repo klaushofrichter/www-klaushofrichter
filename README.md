@@ -3,8 +3,8 @@
 Personal homepage for Klaus Hofrichter, served at
 [www.klaushofrichter.net](https://www.klaushofrichter.net) — an about
 section plus a grid of links to LinkedIn, GitHub, past portfolio/blog work,
-Instagram, and Medium, each with a hero image kept fresh via a daily
-background refresh (see "Image refresh" below).
+Instagram, Medium, and Skylar Technology, each with a hero image (see
+"Image refresh" below).
 
 ## API
 
