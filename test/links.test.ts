@@ -18,4 +18,14 @@ describe('links', () => {
       expect(link?.requiresAuth).toBeFalsy();
     }
   });
+
+  it('marks the protected-area cards as auth-gated', () => {
+    const protectedIds = ['headlamp', 'headlamp-repo', 'grafana', 'steps', 'ghpages'];
+
+    for (const id of protectedIds) {
+      const link = links.find((l) => l.id === id);
+      expect(link).toBeDefined();
+      expect(link?.requiresAuth).toBe(true);
+    }
+  });
 });

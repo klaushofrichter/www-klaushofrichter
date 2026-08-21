@@ -60,7 +60,7 @@ const PAGE_CSS = `
     color: #eef0fb;
     min-height: 100vh;
   }
-  .page { padding: 40px 24px; }
+  .page { padding: 40px 5%; }
   .about { max-width: 640px; margin: 0 auto 40px; text-align: center; }
   .about-avatar {
     width: 72px; height: 72px; border-radius: 50%;
@@ -73,8 +73,6 @@ const PAGE_CSS = `
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(275px, 1fr));
     gap: 18px;
-    max-width: 960px;
-    margin: 0 auto;
   }
   .card {
     background: rgba(255,255,255,0.06);
@@ -91,7 +89,7 @@ const PAGE_CSS = `
   .card-link { display: inline-block; margin-top: 10px; font-size: 11px; color: #93a5fd; text-decoration: none; }
   .card-link:hover { text-decoration: underline; }
   .site-footer {
-    max-width: 960px; margin: 48px auto 0; padding-top: 20px;
+    margin: 48px 0 0; padding-top: 20px;
     border-top: 1px solid rgba(255,255,255,0.1);
     text-align: center; font-size: 12px; opacity: 0.6;
   }
