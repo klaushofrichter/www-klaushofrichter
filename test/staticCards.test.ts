@@ -15,7 +15,7 @@ describe('hasStaticCard', () => {
   });
 
   it('returns true for each protected-area card once its asset exists', () => {
-    for (const id of ['headlamp', 'headlamp-repo', 'grafana', 'steps', 'ghpages']) {
+    for (const id of ['headlamp', 'grafana', 'steps', 'ghpages', 'homeassistant']) {
       expect(hasStaticCard(id)).toBe(true);
     }
   });

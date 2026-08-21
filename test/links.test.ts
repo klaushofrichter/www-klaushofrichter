@@ -20,7 +20,7 @@ describe('links', () => {
   });
 
   it('marks the protected-area cards as auth-gated', () => {
-    const protectedIds = ['headlamp', 'headlamp-repo', 'grafana', 'steps', 'ghpages'];
+    const protectedIds = ['headlamp', 'grafana', 'steps', 'ghpages', 'homeassistant'];
 
     for (const id of protectedIds) {
       const link = links.find((l) => l.id === id);
