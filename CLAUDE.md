@@ -19,12 +19,14 @@ rationale lives in `docs/superpowers/specs/2026-08-20-homepage-design.md`.
 - `production` — protected, PR-only from `main`. Merging here triggers
   `.github/workflows/deploy-production.yml` on the in-cluster self-hosted
   runner, which builds/pushes the image, updates
-  `kube-setup/manifests/www/www-ksvc.yaml`'s image tag, and applies it.
+  `kube-setup/manifests/www-klaushofrichter/www-ksvc.yaml`'s image tag, and
+  applies it.
 
 ## Cluster-side manifests
 
-Live in `klaushofrichter/kube-setup`: `manifests/www/` (the Knative Service +
-DomainMapping) and `manifests/www-klaushofrichter-runner/` (this repo's
+Live in `klaushofrichter/kube-setup`: `manifests/www-klaushofrichter/` (the
+Knative Service + DomainMapping, `www-klaushofrichter` namespace) and
+`manifests/www-klaushofrichter-runner/` (this repo's
 dedicated self-hosted runner — its own namespace/ServiceAccount/RBAC,
 isolated from `steps-service`'s runner per that repo's
 `docs/self-hosted-runner-cicd-pattern.md`).
