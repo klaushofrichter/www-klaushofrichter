@@ -4,6 +4,7 @@ export interface Link {
   url: string;
   abstract: string;
   gradient: string;
+  requiresAuth?: boolean;
 }
 
 export const links: Link[] = [
@@ -55,5 +56,13 @@ export const links: Link[] = [
     url: 'https://www.skylar.technology',
     abstract: 'Skylar Technology LLC.',
     gradient: 'linear-gradient(135deg, #ea580c, #2563eb)',
+  },
+  {
+    id: 'status',
+    title: 'Status',
+    url: 'https://status.klaushofrichter.net',
+    abstract: 'Live uptime and status monitoring for my services.',
+    gradient: 'linear-gradient(135deg, #16a34a, #0891b2)',
+    requiresAuth: true,
   },
 ];
