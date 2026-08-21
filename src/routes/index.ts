@@ -1,14 +1,17 @@
 import { Router, Request, Response } from 'express';
 import { renderPage } from '../views/page';
 import { refreshAllImages } from '../refreshImages';
+import { verifySession } from '../session';
 
 export const indexRouter = Router();
 
 const REFRESH_COOLDOWN_MS = 60_000;
 let lastRefresh = 0;
 
-indexRouter.get('/', (_req: Request, res: Response) => {
-  res.status(200).type('html').send(renderPage());
+indexRouter.get('/', (req: Request, res: Response) => {
+  const token = req.cookies?.session;
+  const session = typeof token === 'string' ? verifySession(token) : null;
+  res.status(200).type('html').send(renderPage(session !== null));
 });
 
 indexRouter.post('/refresh', async (_req: Request, res: Response) => {

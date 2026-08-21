@@ -16,6 +16,7 @@ vi.mock('../src/staticCards', () => ({
 
 import { refreshAllImages } from '../src/refreshImages';
 import { createApp } from '../src/app';
+import { signSession } from '../src/session';
 
 const mockedRefreshAllImages = vi.mocked(refreshAllImages);
 
@@ -39,6 +40,32 @@ describe('GET /', () => {
     expect(response.text).toContain('og:title');
     expect(response.text).toContain('apple-touch-icon');
     expect(response.text).toContain('favicon-32x32.png');
+  });
+
+  it('does not render the status card or a Logout link with no session cookie', async () => {
+    const app = createApp();
+    const response = await request(app).get('/');
+
+    expect(response.text).not.toContain('>Status<');
+    expect(response.text).toContain('href="/auth/google/login">Login</a>');
+  });
+
+  it('renders the status card and a Logout link with a valid session cookie', async () => {
+    const app = createApp();
+    const token = signSession('allowed@example.com');
+    const response = await request(app).get('/').set('Cookie', `session=${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.text).toContain('>Status<');
+    expect(response.text).toContain('href="/auth/logout">Logout</a>');
+  });
+
+  it('renders logged out when the session cookie is garbage', async () => {
+    const app = createApp();
+    const response = await request(app).get('/').set('Cookie', 'session=not-a-real-token');
+
+    expect(response.status).toBe(200);
+    expect(response.text).not.toContain('>Status<');
   });
 });
 
