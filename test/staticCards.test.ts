@@ -9,6 +9,10 @@ describe('hasStaticCard', () => {
   it('returns false for an unknown id', () => {
     expect(hasStaticCard('not-a-real-link')).toBe(false);
   });
+
+  it('returns true for the status card once its asset exists', () => {
+    expect(hasStaticCard('status')).toBe(true);
+  });
 });
 
 describe('staticCardUrl', () => {
