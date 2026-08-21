@@ -36,7 +36,7 @@ function renderCard(link: Link): string {
     ? `<img src="${escapeHtml(imageSrc)}" alt="${escapeHtml(link.title)}" class="card-image-img" />`
     : '';
   return `
-        <div class="card">
+        <div class="card" style="background: ${link.cardColor};">
           <a class="card-image" style="background: ${link.gradient};" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer">${imageMarkup}</a>
           <div class="card-body">
             <h3>${escapeHtml(link.title)}</h3>

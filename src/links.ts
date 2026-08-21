@@ -4,8 +4,23 @@ export interface Link {
   url: string;
   abstract: string;
   gradient: string;
+  cardColor: string;
   requiresAuth?: boolean;
 }
+
+// Fixed dark-tint palette for full-card backgrounds. Reused across cards by
+// design (see docs/superpowers/specs/2026-08-20-homepage-design.md) - same
+// card always gets the same shade since it's assigned here, not derived.
+export const CARD_COLORS = {
+  indigo: 'linear-gradient(160deg, #1e2a4a, #2d1b4e)',
+  slate: 'linear-gradient(160deg, #1f2937, #111827)',
+  stone: 'linear-gradient(160deg, #374151, #24262b)',
+  ember: 'linear-gradient(160deg, #4a2413, #4a1530)',
+  forest: 'linear-gradient(160deg, #0b3d2e, #064e3b)',
+  onyx: 'linear-gradient(160deg, #18181b, #0a0a0a)',
+  rustBlue: 'linear-gradient(160deg, #4a2a10, #1e2a52)',
+  teal: 'linear-gradient(160deg, #0b3d3a, #0c4a52)',
+} as const;
 
 export const links: Link[] = [
   {
@@ -14,6 +29,7 @@ export const links: Link[] = [
     url: 'https://www.linkedin.com/in/klaushofrichter',
     abstract: 'Professional profile, career history, and updates.',
     gradient: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+    cardColor: CARD_COLORS.indigo,
   },
   {
     id: 'github',
@@ -21,6 +37,7 @@ export const links: Link[] = [
     url: 'https://github.com/klaushofrichter',
     abstract: 'Open-source projects, code, and experiments.',
     gradient: 'linear-gradient(135deg, #1f2937, #374151)',
+    cardColor: CARD_COLORS.slate,
   },
   {
     id: 'portfolio2017',
@@ -28,6 +45,7 @@ export const links: Link[] = [
     url: 'https://klaushofrichter.wordpress.com',
     abstract: 'An earlier portfolio and blog archive.',
     gradient: 'linear-gradient(135deg, #6b7280, #9ca3af)',
+    cardColor: CARD_COLORS.stone,
   },
   {
     id: 'instagram',
@@ -35,6 +53,7 @@ export const links: Link[] = [
     url: 'https://www.instagram.com/klaushofrichter',
     abstract: 'Photos and moments, shared casually.',
     gradient: 'linear-gradient(135deg, #f97316, #ec4899)',
+    cardColor: CARD_COLORS.ember,
   },
   {
     id: 'threepuppies',
@@ -42,6 +61,7 @@ export const links: Link[] = [
     url: 'https://three-pups.mystrikingly.com',
     abstract: 'A small site about three very good dogs.',
     gradient: 'linear-gradient(135deg, #059669, #10b981)',
+    cardColor: CARD_COLORS.forest,
   },
   {
     id: 'medium',
@@ -49,6 +69,7 @@ export const links: Link[] = [
     url: 'https://medium.com/@klaushofrichter',
     abstract: 'Articles and longer-form writing.',
     gradient: 'linear-gradient(135deg, #000000, #3a3a3a)',
+    cardColor: CARD_COLORS.onyx,
   },
   {
     id: 'skylar',
@@ -56,6 +77,7 @@ export const links: Link[] = [
     url: 'https://www.skylar.technology',
     abstract: 'Skylar Technology LLC.',
     gradient: 'linear-gradient(135deg, #ea580c, #2563eb)',
+    cardColor: CARD_COLORS.rustBlue,
   },
   {
     id: 'status',
@@ -63,6 +85,7 @@ export const links: Link[] = [
     url: 'https://status.klaushofrichter.net',
     abstract: 'Live uptime and status monitoring for my services.',
     gradient: 'linear-gradient(135deg, #16a34a, #0891b2)',
+    cardColor: CARD_COLORS.teal,
     requiresAuth: true,
   },
   {
@@ -71,6 +94,7 @@ export const links: Link[] = [
     url: 'https://headlamp.skylar.technology',
     abstract: 'Kubernetes cluster dashboard for the Skylar Technology infrastructure.',
     gradient: 'linear-gradient(135deg, #ea580c, #2563eb)',
+    cardColor: CARD_COLORS.rustBlue,
     requiresAuth: true,
   },
   {
@@ -79,6 +103,7 @@ export const links: Link[] = [
     url: 'https://github.com/kubernetes-sigs/headlamp',
     abstract: 'Open-source Kubernetes web UI project used for cluster monitoring.',
     gradient: 'linear-gradient(135deg, #1f2937, #374151)',
+    cardColor: CARD_COLORS.slate,
     requiresAuth: true,
   },
   {
@@ -87,6 +112,7 @@ export const links: Link[] = [
     url: 'https://klaushofrichter.grafana.net/d/kl9nd7q/skylar-technology-node-overview',
     abstract: 'Node metrics dashboard for the Skylar Technology cluster.',
     gradient: 'linear-gradient(135deg, #f97316, #eab308)',
+    cardColor: CARD_COLORS.ember,
     requiresAuth: true,
   },
   {
@@ -95,6 +121,7 @@ export const links: Link[] = [
     url: 'https://steps.skylar.technology',
     abstract: 'Personal step count and Claude usage status dashboard.',
     gradient: 'linear-gradient(135deg, #000000, #3a3a3a)',
+    cardColor: CARD_COLORS.onyx,
     requiresAuth: true,
   },
   {
@@ -103,6 +130,7 @@ export const links: Link[] = [
     url: 'https://klaushofrichter.github.io/klaushofrichter',
     abstract: 'A collection of small deployed apps and demos.',
     gradient: 'linear-gradient(135deg, #6b7280, #9ca3af)',
+    cardColor: CARD_COLORS.stone,
     requiresAuth: true,
   },
 ];
