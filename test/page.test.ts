@@ -51,6 +51,14 @@ describe('renderPage card images', () => {
       '<a class="card-image" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6);" href="https://www.linkedin.com/in/klaushofrichter" target="_blank" rel="noopener noreferrer">'
     );
   });
+
+  it('applies the card\'s cardColor as the whole card background', () => {
+    const html = renderPage(false);
+
+    expect(html).toContain(
+      '<div class="card" style="background: linear-gradient(160deg, #1e2a4a, #2d1b4e);">'
+    );
+  });
 });
 
 describe('renderPage auth-gated cards and login button', () => {
