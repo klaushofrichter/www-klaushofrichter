@@ -9,6 +9,16 @@ describe('hasStaticCard', () => {
   it('returns false for an unknown id', () => {
     expect(hasStaticCard('not-a-real-link')).toBe(false);
   });
+
+  it('returns true for the status card once its asset exists', () => {
+    expect(hasStaticCard('status')).toBe(true);
+  });
+
+  it('returns true for each protected-area card once its asset exists', () => {
+    for (const id of ['headlamp', 'headlamp-repo', 'grafana', 'steps', 'ghpages']) {
+      expect(hasStaticCard(id)).toBe(true);
+    }
+  });
 });
 
 describe('staticCardUrl', () => {

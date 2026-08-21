@@ -60,7 +60,7 @@ const PAGE_CSS = `
     color: #eef0fb;
     min-height: 100vh;
   }
-  .page { padding: 40px 24px; }
+  .page { padding: 40px 5%; }
   .about { max-width: 640px; margin: 0 auto 40px; text-align: center; }
   .about-avatar {
     width: 72px; height: 72px; border-radius: 50%;
@@ -73,8 +73,6 @@ const PAGE_CSS = `
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(275px, 1fr));
     gap: 18px;
-    max-width: 960px;
-    margin: 0 auto;
   }
   .card {
     background: rgba(255,255,255,0.06);
@@ -91,12 +89,24 @@ const PAGE_CSS = `
   .card-link { display: inline-block; margin-top: 10px; font-size: 11px; color: #93a5fd; text-decoration: none; }
   .card-link:hover { text-decoration: underline; }
   .site-footer {
-    max-width: 960px; margin: 48px auto 0; padding-top: 20px;
+    margin: 48px 0 0; padding-top: 20px;
     border-top: 1px solid rgba(255,255,255,0.1);
     text-align: center; font-size: 12px; opacity: 0.6;
   }
-  #refresh-button {
+  .header-actions {
     position: fixed; top: 16px; right: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  #auth-button {
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 36px; padding: 0 14px; border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.06);
+    color: #eef0fb; font-size: 12px; text-decoration: none;
+    opacity: 0.35; transition: opacity 0.2s;
+  }
+  #auth-button:hover { opacity: 1; }
+  #refresh-button {
     width: 36px; height: 36px; border-radius: 50%;
     border: 1px solid rgba(255,255,255,0.15);
     background: rgba(255,255,255,0.06);
@@ -143,8 +153,28 @@ const REFRESH_SCRIPT = `
   })();
 `;
 
-export function renderPage(): string {
-  const cards = links.map(renderCard).join('\n');
+const AUTH_ERROR_SCRIPT = `
+  (function () {
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('auth_error') === '1') {
+      var message = document.getElementById('refresh-message');
+      message.textContent = 'Login failed — only klaus@klaushofrichter.net can sign in.';
+      message.classList.add('visible');
+      setTimeout(function () { message.classList.remove('visible'); }, 6000);
+      params.delete('auth_error');
+      var newSearch = params.toString();
+      var newUrl = window.location.pathname + (newSearch ? '?' + newSearch : '') + window.location.hash;
+      window.history.replaceState({}, '', newUrl);
+    }
+  })();
+`;
+
+export function renderPage(isAuthenticated: boolean): string {
+  const visibleLinks = links.filter((link) => !link.requiresAuth || isAuthenticated);
+  const cards = visibleLinks.map(renderCard).join('\n');
+  const authButtonMarkup = isAuthenticated
+    ? '<a id="auth-button" href="/auth/logout">Logout</a>'
+    : '<a id="auth-button" href="/auth/google/login">Login</a>';
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -162,7 +192,10 @@ export function renderPage(): string {
     <style>${PAGE_CSS}</style>
   </head>
   <body>
-    <button id="refresh-button" title="Refresh images" aria-label="Refresh images">⟳</button>
+    <div class="header-actions">
+      ${authButtonMarkup}
+      <button id="refresh-button" title="Refresh images" aria-label="Refresh images">⟳</button>
+    </div>
     <div id="refresh-message"></div>
     <div class="page">
       <header class="about">
@@ -174,7 +207,7 @@ export function renderPage(): string {
       </main>
       <footer class="site-footer">${escapeHtml(FOOTER_TEXT)}</footer>
     </div>
-    <script>${REFRESH_SCRIPT}</script>
+    <script>${REFRESH_SCRIPT}${AUTH_ERROR_SCRIPT}</script>
   </body>
 </html>`;
 }
