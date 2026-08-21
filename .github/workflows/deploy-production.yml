@@ -28,7 +28,7 @@ jobs:
             --server=https://kubernetes.default.svc \
             --certificate-authority="${SA_DIR}/ca.crt"
           kubectl config set-credentials deploy-sa --token="$(cat "${SA_DIR}/token")"
-          kubectl config set-context in-cluster --cluster=in-cluster --user=deploy-sa --namespace=www
+          kubectl config set-context in-cluster --cluster=in-cluster --user=deploy-sa --namespace=www-klaushofrichter
           kubectl config use-context in-cluster
 
       - name: Log in to ghcr.io
@@ -57,26 +57,26 @@ jobs:
           rm -rf /tmp/kube-setup-deploy
           git clone "https://x-access-token:${KUBE_SETUP_DEPLOY_TOKEN}@github.com/klaushofrichter/kube-setup.git" /tmp/kube-setup-deploy
           cd /tmp/kube-setup-deploy
-          sed -i "s|image: ghcr.io/klaushofrichter/www-klaushofrichter:.*|image: ghcr.io/klaushofrichter/www-klaushofrichter:${SHA}|" manifests/www/www-ksvc.yaml
-          grep -q "image: ghcr.io/klaushofrichter/www-klaushofrichter:${SHA}$" manifests/www/www-ksvc.yaml \
+          sed -i "s|image: ghcr.io/klaushofrichter/www-klaushofrichter:.*|image: ghcr.io/klaushofrichter/www-klaushofrichter:${SHA}|" manifests/www-klaushofrichter/www-ksvc.yaml
+          grep -q "image: ghcr.io/klaushofrichter/www-klaushofrichter:${SHA}$" manifests/www-klaushofrichter/www-ksvc.yaml \
             || { echo "::error::manifest image line did not update to ${SHA}"; exit 1; }
           git config user.name "www-klaushofrichter-deploy-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add manifests/www/www-ksvc.yaml
+          git add manifests/www-klaushofrichter/www-ksvc.yaml
           if git diff --cached --quiet; then
             echo "No manifest change (image tag already up to date) — skipping commit/push."
           else
             git commit -m "Deploy www-klaushofrichter ${SHA}"
             git push
           fi
-          kubectl apply -f manifests/www/www-ksvc.yaml
+          kubectl apply -f manifests/www-klaushofrichter/www-ksvc.yaml
           rm -rf /tmp/kube-setup-deploy
 
       - name: Verify rollout
         run: |
           set -euo pipefail
-          kubectl wait --for=condition=Ready ksvc/www -n www --timeout=120s
-          kubectl get ksvc www -n www
+          kubectl wait --for=condition=Ready ksvc/www-klaushofrichter -n www-klaushofrichter --timeout=120s
+          kubectl get ksvc www-klaushofrichter -n www-klaushofrichter
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
