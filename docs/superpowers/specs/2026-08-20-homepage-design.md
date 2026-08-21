@@ -31,6 +31,7 @@ the app's content, not its infrastructure.
 | `instagram` | Instagram | `https://www.instagram.com/klaushofrichter` | Photos and moments, shared casually. |
 | `threepuppies` | Three Puppies | `https://three-pups.mystrikingly.com` | A small site about three very good dogs. |
 | `medium` | Medium | `https://medium.com/@klaushofrichter` | Articles and longer-form writing. |
+| `skylar` | Skylar Technology | `https://www.skylar.technology` | Skylar Technology LLC. |
 
 Each entry is `{ id, title, url, abstract }`. Adding a 7th–10th link later
 is a one-line addition to this array — no other code changes needed.

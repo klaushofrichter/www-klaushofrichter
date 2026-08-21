@@ -20,7 +20,7 @@ import { createApp } from '../src/app';
 const mockedRefreshAllImages = vi.mocked(refreshAllImages);
 
 describe('GET /', () => {
-  it('renders the about section, all 6 card titles, and the footer', async () => {
+  it('renders the about section, all 7 card titles, and the footer', async () => {
     const app = createApp();
     const response = await request(app).get('/');
 
@@ -33,6 +33,7 @@ describe('GET /', () => {
     expect(response.text).toContain('Instagram');
     expect(response.text).toContain('Three Puppies');
     expect(response.text).toContain('Medium');
+    expect(response.text).toContain('Skylar Technology');
     expect(response.text).toContain('Contact: klaus@klaushofrichter.net');
     expect(response.text).toContain('og:image');
     expect(response.text).toContain('og:title');

@@ -49,4 +49,11 @@ export const links: Link[] = [
     abstract: 'Articles and longer-form writing.',
     gradient: 'linear-gradient(135deg, #000000, #3a3a3a)',
   },
+  {
+    id: 'skylar',
+    title: 'Skylar Technology',
+    url: 'https://www.skylar.technology',
+    abstract: 'Skylar Technology LLC.',
+    gradient: 'linear-gradient(135deg, #ea580c, #2563eb)',
+  },
 ];
