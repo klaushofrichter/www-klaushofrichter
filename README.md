@@ -50,6 +50,20 @@ Each card's hero image resolves in this order:
 The card image is a clickable link to the card's URL. See
 `docs/superpowers/specs/2026-08-20-homepage-design.md` for the full design.
 
+## Login
+
+A "Login" button in the top-right corner starts a Google OAuth sign-in
+(`GET /auth/google/login`). Only `klaus@klaushofrichter.net` (configured
+via the `ALLOWED_EMAILS` env var) can complete it — anyone else is sent
+back to `/` with an error toast. Once logged in, the button becomes
+"Logout" (`GET /auth/logout`), and cards marked as auth-gated (currently
+just the `status.klaushofrichter.net` card) become visible. The session
+is a signed, httpOnly cookie (7-day expiry) — there's no server-side
+session store.
+
+For local development, copy `.env.example` to `.env` and fill in real
+values; `npm run dev` loads it automatically.
+
 ## End-to-end smoke test
 
 `e2e/smoke.spec.ts` (Playwright) checks the home page and `/health` against

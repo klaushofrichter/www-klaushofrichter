@@ -30,6 +30,9 @@ here are dated by when they shipped, not by a semver bump.
   stays in place as the fallback for any link added later without one.
   Card images are now clickable (link to the card's URL), and cards are
   25% wider (`minmax(220px,...)` → `minmax(275px,...)`).
+- Added Google OAuth login (top-right "Login"/"Logout" button, restricted
+  to klaus@klaushofrichter.net) and an auth-gated status.klaushofrichter.net
+  card that only appears once logged in.
 
 ## 2026-08-20
 
