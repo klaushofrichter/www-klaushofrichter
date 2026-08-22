@@ -160,4 +160,22 @@ export const links: Link[] = [
     cardColor: CARD_COLORS.forest,
     requiresAuth: true,
   },
+  {
+    id: 'hostinger',
+    title: 'Hostinger',
+    url: 'https://hpanel.hostinger.com/vps/1412632/overview',
+    abstract: 'VPS hosting control panel and server management.',
+    gradient: 'linear-gradient(135deg, #673de6, #9333ea)',
+    cardColor: CARD_COLORS.indigo,
+    requiresAuth: true,
+  },
+  {
+    id: 'cloudflare',
+    title: 'Cloudflare',
+    url: 'https://dash.cloudflare.com/2335333b033ad754951a1dac290a3cc5/home',
+    abstract: 'DNS, domains, and Workers account dashboard.',
+    gradient: 'linear-gradient(135deg, #f38020, #faad3f)',
+    cardColor: CARD_COLORS.ember,
+    requiresAuth: true,
+  },
 ];
