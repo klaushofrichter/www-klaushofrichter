@@ -56,6 +56,14 @@ export const links: Link[] = [
     cardColor: CARD_COLORS.ember,
   },
   {
+    id: 'instagetter',
+    title: 'instagetter',
+    url: 'https://insta.skylar.technology',
+    abstract: 'A self-hosted gallery of my Instagram photos, served from S3.',
+    gradient: 'linear-gradient(135deg, #c13584, #833ab4)',
+    cardColor: CARD_COLORS.teal,
+  },
+  {
     id: 'threepuppies',
     title: 'Three Puppies',
     url: 'https://three-pups.mystrikingly.com',
@@ -176,6 +184,15 @@ export const links: Link[] = [
     abstract: 'DNS, domains, and Workers account dashboard.',
     gradient: 'linear-gradient(135deg, #f38020, #faad3f)',
     cardColor: CARD_COLORS.ember,
+    requiresAuth: true,
+  },
+  {
+    id: 'aws',
+    title: 'AWS Console',
+    url: 'https://console.aws.amazon.com',
+    abstract: 'Amazon Web Services console home, cost and usage overview.',
+    gradient: 'linear-gradient(135deg, #232f3e, #ff9900)',
+    cardColor: CARD_COLORS.slate,
     requiresAuth: true,
   },
 ];
