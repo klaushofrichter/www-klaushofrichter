@@ -11,7 +11,7 @@ describe('links', () => {
   });
 
   it('does not mark the existing public cards as auth-gated', () => {
-    const publicIds = ['linkedin', 'github', 'portfolio2017', 'instagram', 'threepuppies', 'medium', 'skylar'];
+    const publicIds = ['linkedin', 'github', 'portfolio2017', 'instagram', 'threepuppies', 'medium', 'skylar', 'instagetter'];
 
     for (const id of publicIds) {
       const link = links.find((l) => l.id === id);
@@ -20,7 +20,7 @@ describe('links', () => {
   });
 
   it('marks the protected-area cards as auth-gated', () => {
-    const protectedIds = ['headlamp', 'grafana', 'steps', 'ghpages', 'homeassistant', 'slack', 'squarespace', 'uptimerobot', 'hostinger', 'cloudflare'];
+    const protectedIds = ['headlamp', 'grafana', 'steps', 'ghpages', 'homeassistant', 'slack', 'squarespace', 'uptimerobot', 'hostinger', 'cloudflare', 'aws', 'bulbs'];
 
     for (const id of protectedIds) {
       const link = links.find((l) => l.id === id);

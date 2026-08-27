@@ -10,12 +10,16 @@ describe('hasStaticCard', () => {
     expect(hasStaticCard('not-a-real-link')).toBe(false);
   });
 
+  it('returns true for the instagetter card', () => {
+    expect(hasStaticCard('instagetter')).toBe(true);
+  });
+
   it('returns true for the status card once its asset exists', () => {
     expect(hasStaticCard('status')).toBe(true);
   });
 
   it('returns true for each protected-area card once its asset exists', () => {
-    for (const id of ['headlamp', 'grafana', 'steps', 'ghpages', 'homeassistant', 'slack', 'squarespace', 'uptimerobot', 'hostinger', 'cloudflare']) {
+    for (const id of ['headlamp', 'grafana', 'steps', 'ghpages', 'homeassistant', 'slack', 'squarespace', 'uptimerobot', 'hostinger', 'cloudflare', 'aws', 'bulbs']) {
       expect(hasStaticCard(id)).toBe(true);
     }
   });

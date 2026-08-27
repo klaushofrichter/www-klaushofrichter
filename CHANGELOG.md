@@ -34,6 +34,11 @@ here are dated by when they shipped, not by a semver bump.
   to klaus@klaushofrichter.net) and an auth-gated status.klaushofrichter.net
   card that only appears once logged in.
 
+### Changed
+
+- Upgraded the runtime from Node 20 to Node 24 (`node:24-alpine` in both
+  Dockerfile stages, `node-version: 24` in all three workflows).
+
 ## 2026-08-20
 
 ### Added
