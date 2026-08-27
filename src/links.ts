@@ -195,4 +195,13 @@ export const links: Link[] = [
     cardColor: CARD_COLORS.slate,
     requiresAuth: true,
   },
+  {
+    id: 'bulbs',
+    title: 'Kauf Bulbs',
+    url: 'https://bulbs.skylar.technology',
+    abstract: 'Smart bulb control panel for on/off switching across the house.',
+    gradient: 'linear-gradient(135deg, #16a34a, #a3e635)',
+    cardColor: CARD_COLORS.forest,
+    requiresAuth: true,
+  },
 ];
