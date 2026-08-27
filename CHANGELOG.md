@@ -57,6 +57,12 @@ this file is where notes are written *before* a release.
   build reports its version in `GET /health` (`{"status":"ok","service":...,
   "version":"2026.08.26.1"}`) and in the page header, left of the
   Login/Logout button. `package.json` no longer carries a `version` field.
+- Moved the Playwright suite out of the production deploy and into the
+  production PR checks, where it runs on GitHub's runners against a locally
+  started server. Installing a browser on the in-cluster self-hosted runner
+  exceeded its 512Mi limit and got it OOM-killed mid-deploy. The deploy now
+  smoke-tests with `curl`, and additionally asserts that the version `/health`
+  reports is the one that run just stamped.
 
 ## 2026-08-20
 

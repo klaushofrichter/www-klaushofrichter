@@ -105,19 +105,34 @@ jobs:
           kubectl wait --for=condition=Ready ksvc/www-klaushofrichter -n www-klaushofrichter --timeout=120s
           kubectl get ksvc www-klaushofrichter -n www-klaushofrichter
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: 24
-
-      - name: Run Playwright smoke test against production
+      # Deliberately curl and not Playwright: installing a browser here
+      # OOM-killed the runner (512Mi limit), which GitHub reports as "the
+      # self-hosted runner lost communication with the server" and which cost
+      # the release step below. The full Playwright suite runs on GitHub's own
+      # runners in production-checks.yml, before the merge that gets here.
+      - name: Smoke-test the public endpoints
         env:
-          BASE_URL: https://www.klaushofrichter.net
+          VERSION: ${{ steps.ver.outputs.version }}
         run: |
           set -euo pipefail
-          npm ci
-          npx playwright install --with-deps chromium
-          npm run test:e2e
+          BASE=https://www.klaushofrichter.net
+          for i in $(seq 1 10); do
+            code=$(curl -s -o /tmp/health.json -w "%{http_code}" "$BASE/health" || true)
+            [ "$code" = "200" ] && echo "health ok" && break
+            echo "health not ready (HTTP ${code}), retry ${i}/10"; sleep 6
+          done
+          [ "$code" = "200" ] || { echo "::error::/health did not return 200"; exit 1; }
+          # The deployed build must be the one this run just stamped.
+          # sed, not jq: the self-hosted runner has no jq installed.
+          served=$(sed -n 's/.*"version":"\([^"]*\)".*/\1/p' /tmp/health.json)
+          [ "$served" = "$VERSION" ] \
+            || { echo "::error::/health reports ${served}, expected ${VERSION}"; exit 1; }
+          echo "version ok: $served"
+          page=$(curl -s -o /tmp/page.html -w "%{http_code}" "$BASE/")
+          [ "$page" = "200" ] || { echo "::error::public page returned ${page}"; exit 1; }
+          grep -q 'id="app-version"' /tmp/page.html \
+            || { echo "::error::page header is missing the version label"; exit 1; }
+          echo "public page ok"
 
       - name: Tag the release
         env:

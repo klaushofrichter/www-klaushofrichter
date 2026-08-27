@@ -18,6 +18,47 @@ jobs:
 
       - run: npm test
 
+  e2e:
+    # The Playwright suite runs here, on GitHub's runners, rather than in the
+    # deploy: installing a browser on the in-cluster self-hosted runner
+    # OOM-kills it. Against a locally started server, so a broken build is
+    # caught before it is merged rather than after it is live.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      - run: npm run build
+
+      - name: Start the server and run the smoke test
+        env:
+          # Dummy values: the suite only exercises the public, logged-out
+          # surface, but the server refuses to sign a session without a secret.
+          COOKIE_SECRET: e2e-cookie-secret-not-used-for-anything-real
+          GOOGLE_CLIENT_ID: e2e
+          GOOGLE_CLIENT_SECRET: e2e
+          GOOGLE_REDIRECT_URI: http://localhost:8080/auth/google/callback
+          ALLOWED_EMAILS: klaus@klaushofrichter.net
+        run: |
+          set -euo pipefail
+          npm start &
+          echo $! > /tmp/server.pid
+          for i in $(seq 1 20); do
+            curl -sf http://localhost:8080/health >/dev/null && break
+            echo "waiting for server (${i}/20)"; sleep 2
+          done
+          curl -sf http://localhost:8080/health >/dev/null \
+            || { echo "::error::server did not come up"; exit 1; }
+          npm run test:e2e
+          kill "$(cat /tmp/server.pid)" || true
+
   codeql:
     runs-on: ubuntu-latest
     permissions:

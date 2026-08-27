@@ -71,9 +71,14 @@ values; `npm run dev` loads it automatically.
 
 `e2e/smoke.spec.ts` (Playwright) checks the home page and `/health` against
 a running instance. Run it locally against `npm run dev`/Docker with
-`BASE_URL=http://localhost:8080 npm run test:e2e`. The deploy workflow runs
-it against `https://www.klaushofrichter.net` right after every production
-rollout, as the actual smoke test that gates a deploy as successful.
+`BASE_URL=http://localhost:8080 npm run test:e2e`. It runs in CI as the `e2e`
+job of the production PR checks, on GitHub's runners against a locally started
+server — not in the deploy, where installing a browser exceeds the in-cluster
+runner's memory limit and gets it OOM-killed.
+
+The deploy's own smoke test is `curl`-based: after the rollout it waits for
+`/health` to return 200, asserts the version it reports is the one that run
+just stamped, and checks that `/` returns 200 with the version label present.
 
 ## Versioning and releases
 
