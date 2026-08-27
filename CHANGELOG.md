@@ -38,6 +38,8 @@ here are dated by when they shipped, not by a semver bump.
 
 - Upgraded the runtime from Node 20 to Node 24 (`node:24-alpine` in both
   Dockerfile stages, `node-version: 24` in all three workflows).
+- Bumped `actions/checkout` and `actions/setup-node` to `@v5` in all three
+  workflows, clearing the Node 20 runtime deprecation warning.
 
 ## 2026-08-20
 
