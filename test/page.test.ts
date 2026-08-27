@@ -78,3 +78,19 @@ describe('renderPage auth-gated cards and login button', () => {
     expect(html).not.toContain('href="/auth/google/login"');
   });
 });
+
+describe('renderPage version label', () => {
+  it('shows "dev" as the version when nothing is stamped in', () => {
+    expect(renderPage(false)).toContain('<span id="app-version" title="Deployed build">dev</span>');
+  });
+
+  it('shows the stamped build version left of the auth button', () => {
+    vi.stubEnv('APP_VERSION', '2026.08.26.1');
+
+    const html = renderPage(false);
+
+    expect(html).toContain('<span id="app-version" title="Deployed build">2026.08.26.1</span>');
+    expect(html.indexOf('id="app-version"')).toBeLessThan(html.indexOf('id="auth-button"'));
+    vi.unstubAllEnvs();
+  });
+});

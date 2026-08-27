@@ -1,3 +1,4 @@
+import { appVersion } from '../version';
 import { links, Link } from '../links';
 import { hasImage } from '../refreshImages';
 import { hasStaticCard, staticCardUrl } from '../staticCards';
@@ -97,6 +98,11 @@ const PAGE_CSS = `
     position: fixed; top: 16px; right: 16px;
     display: flex; align-items: center; gap: 8px;
   }
+  #app-version {
+    font-size: 11px; color: #eef0fb; letter-spacing: 0.02em;
+    opacity: 0.25; transition: opacity 0.2s;
+  }
+  .header-actions:hover #app-version { opacity: 0.6; }
   #auth-button {
     display: inline-flex; align-items: center; justify-content: center;
     height: 36px; padding: 0 14px; border-radius: 18px;
@@ -193,6 +199,7 @@ export function renderPage(isAuthenticated: boolean): string {
   </head>
   <body>
     <div class="header-actions">
+      <span id="app-version" title="Deployed build">${escapeHtml(appVersion())}</span>
       ${authButtonMarkup}
       <button id="refresh-button" title="Refresh images" aria-label="Refresh images">⟳</button>
     </div>

@@ -8,6 +8,10 @@ RUN npm run build
 
 FROM node:24-alpine
 WORKDIR /app
+# Stamped by the deploy so the running container can report which build it is.
+# Defaults to "dev" for local builds, which is what you want to see locally.
+ARG APP_VERSION=dev
+ENV APP_VERSION=$APP_VERSION
 ENV NODE_ENV=production
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev

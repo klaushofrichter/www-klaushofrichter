@@ -1,6 +1,5 @@
 {
   "name": "www-klaushofrichter",
-  "version": "1.0.0",
   "private": true,
   "description": "Personal homepage for Klaus Hofrichter, served at www.klaushofrichter.net by Express on Knative/k3s.",
   "type": "commonjs",

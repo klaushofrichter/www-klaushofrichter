@@ -16,7 +16,10 @@ Instagram, Medium, and Skylar Technology, each with a hero image (see
 - `POST /refresh` — re-fetches all hero images on demand (also the small
   ⟳ button in the page's top-right corner). Subject to a 60-second
   cooldown; returns `429` if called again too soon.
-- `GET /health` — returns `{"status": "ok", "service": "www-klaushofrichter"}`
+- `GET /health` — returns
+  `{"status": "ok", "service": "www-klaushofrichter", "version": "2026.08.26.1"}`.
+  The version is stamped into the image at deploy time (see "Versioning and
+  releases"); it reads `dev` for a local build.
 - `/assets/*` — static asset serving for the og:image social-preview
   image and favicons (`assets/og-image.png`, `assets/favicon-16x16.png`,
   `assets/favicon-32x32.png`, `assets/apple-touch-icon.png`).
@@ -71,6 +74,21 @@ a running instance. Run it locally against `npm run dev`/Docker with
 `BASE_URL=http://localhost:8080 npm run test:e2e`. The deploy workflow runs
 it against `https://www.klaushofrichter.net` right after every production
 rollout, as the actual smoke test that gates a deploy as successful.
+
+## Versioning and releases
+
+Versions are generated at deploy time, not carried in the sources —
+`package.json` has no `version` field. Each merge to `production` computes
+`vYYYY.MM.DD.N` (the date in Central time, plus a counter over that day's
+existing releases), bakes it into the image as `ARG APP_VERSION`, tags the
+image with it alongside the SHA tag, and — after the rollout and smoke test
+pass — creates a GitHub release. The release notes are whatever is curated
+under `## [Unreleased]` in `CHANGELOG.md`, followed by the commits since the
+previous release. The existing tags are the only state, so nothing needs
+bumping and a failed deploy produces no release.
+
+The running build reports its version on `GET /health` and in the page
+header, to the left of the Login/Logout button.
 
 ## Deployment
 

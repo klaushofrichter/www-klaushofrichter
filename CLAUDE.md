@@ -22,6 +22,24 @@ rationale lives in `docs/superpowers/specs/2026-08-20-homepage-design.md`.
   `kube-setup/manifests/www-klaushofrichter/www-ksvc.yaml`'s image tag, and
   applies it.
 
+## Versioning and releases
+
+A merge into `production` cuts a release. The version is generated in
+`deploy-production.yml` as `vYYYY.MM.DD.N` — the date in Central time plus a
+counter over the releases that already exist for that day. The tags are the
+only state, so nothing is stored and nothing needs bumping; `package.json`
+deliberately carries no `version` field.
+
+The version is passed to the image build as `ARG APP_VERSION` and read back by
+`src/version.ts`, which feeds `GET /health` and the `#app-version` label in the
+page header. Local builds and tests see `dev`.
+
+Release notes come from the commits since the previous release, preceded by
+anything under `## [Unreleased]` in `CHANGELOG.md`. The release step runs last
+(after the rollout check and the Playwright smoke test), so a failed deploy
+produces no release, and the checkout uses `fetch-depth: 0` because the notes
+are computed from history and tags.
+
 ## Cluster-side manifests
 
 Live in `klaushofrichter/kube-setup`: `manifests/www-klaushofrichter/` (the
