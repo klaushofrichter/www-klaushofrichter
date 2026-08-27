@@ -13,8 +13,17 @@ test('home page loads with the about section and all cards', async ({ page }) =>
   await expect(page.getByText('Contact: klaus@klaushofrichter.net')).toBeVisible();
 });
 
-test('/health reports ok', async ({ request }) => {
+test('/health reports ok with a version', async ({ request }) => {
   const response = await request.get('/health');
   expect(response.status()).toBe(200);
-  expect(await response.json()).toEqual({ status: 'ok', service: 'www-klaushofrichter' });
+  const body = await response.json();
+  expect(body.status).toBe('ok');
+  expect(body.service).toBe('www-klaushofrichter');
+  // Generated at deploy time as YYYY.MM.DD.N; "dev" for an unstamped build.
+  expect(body.version).toMatch(/^(dev|\d{4}\.\d{2}\.\d{2}\.\d+)$/);
+});
+
+test('the page header shows the deployed version', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#app-version')).toHaveText(/^(dev|\d{4}\.\d{2}\.\d{2}\.\d+)$/);
 });

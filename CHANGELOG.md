@@ -3,11 +3,20 @@
 All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-Deployment isn't versioned (every merge to `production` ships automatically,
-image-tagged with the exact git SHA — see `README.md` "Deployment") — entries
-here are dated by when they shipped, not by a semver bump.
+Versions are **generated at deploy time**, not carried in the sources: a merge
+into `production` is tagged `vYYYY.MM.DD.N`, where `N` counts that day's
+releases. Nothing needs bumping and nothing can be forgotten, and the running
+build reports its own version on `/health` and in the page header.
+`package.json` deliberately carries no `version` field.
 
-## Unreleased
+Each release's notes are assembled from the commits since the previous one,
+preceded by anything curated under Unreleased below. The full history lives on
+the [releases page](https://github.com/klaushofrichter/www-klaushofrichter/releases);
+this file is where notes are written *before* a release.
+
+<!-- Anything written under Unreleased is prepended to the next release's
+     notes. Keep prose out of it unless you mean it to be published. -->
+## [Unreleased]
 
 ### Added
 
@@ -38,8 +47,16 @@ here are dated by when they shipped, not by a semver bump.
 
 - Upgraded the runtime from Node 20 to Node 24 (`node:24-alpine` in both
   Dockerfile stages, `node-version: 24` in all three workflows).
-- Bumped `actions/checkout` and `actions/setup-node` to `@v5` in all three
-  workflows, clearing the Node 20 runtime deprecation warning.
+- Bumped `actions/checkout` and `actions/setup-node` to `@v5`, and
+  `docker/login-action`/`docker/build-push-action` to `@v4`/`@v7`, clearing
+  the Node 20 runtime deprecation warning.
+- Every merge to `production` now cuts a release: the deploy generates a
+  `vYYYY.MM.DD.N` version, bakes it into the image (`ARG APP_VERSION`), tags
+  the image with it, and creates a GitHub release whose notes are this file's
+  Unreleased section plus the commits since the last release. The running
+  build reports its version in `GET /health` (`{"status":"ok","service":...,
+  "version":"2026.08.26.1"}`) and in the page header, left of the
+  Login/Logout button. `package.json` no longer carries a `version` field.
 
 ## 2026-08-20
 
