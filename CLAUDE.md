@@ -36,9 +36,20 @@ page header. Local builds and tests see `dev`.
 
 Release notes come from the commits since the previous release, preceded by
 anything under `## [Unreleased]` in `CHANGELOG.md`. The release step runs last
-(after the rollout check and the Playwright smoke test), so a failed deploy
-produces no release, and the checkout uses `fetch-depth: 0` because the notes
-are computed from history and tags.
+(after the rollout check and the curl smoke test), so a failed deploy produces
+no release, and the checkout uses `fetch-depth: 0` because the notes are
+computed from history and tags.
+
+## Don't run Playwright on the self-hosted runner
+
+The deploy used to end with `npx playwright install --with-deps chromium` plus
+the e2e suite. The runner container is capped at 512Mi
+(`kube-setup/manifests/www-klaushofrichter-runner/runner-deployment.yaml`), so
+the browser install OOM-killed it; GitHub surfaces that as "The self-hosted
+runner lost communication with the server", which reads like a network fault
+and is not one. The suite now runs in `production-checks.yml` on GitHub's
+runners against a locally started server, and the deploy smoke-tests with
+`curl`. Keep heavyweight installs off that runner.
 
 ## Cluster-side manifests
 
