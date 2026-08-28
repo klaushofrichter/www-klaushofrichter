@@ -74,7 +74,7 @@ export const links: Link[] = [
   {
     id: 'medium',
     title: 'Medium',
-    url: 'https://medium.com/@klaushofrichter',
+    url: 'https://klaushofrichter.medium.com/',
     abstract: 'Articles and longer-form writing.',
     gradient: 'linear-gradient(135deg, #000000, #3a3a3a)',
     cardColor: CARD_COLORS.onyx,
