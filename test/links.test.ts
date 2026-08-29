@@ -11,7 +11,7 @@ describe('links', () => {
   });
 
   it('does not mark the existing public cards as auth-gated', () => {
-    const publicIds = ['linkedin', 'github', 'portfolio2017', 'instagram', 'threepuppies', 'medium', 'skylar', 'instagetter'];
+    const publicIds = ['linkedin', 'github', 'portfolio2017', 'instagram', 'threepuppies', 'medium', 'skylar', 'instagetter', 'art'];
 
     for (const id of publicIds) {
       const link = links.find((l) => l.id === id);

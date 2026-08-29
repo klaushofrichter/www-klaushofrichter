@@ -14,6 +14,10 @@ describe('hasStaticCard', () => {
     expect(hasStaticCard('instagetter')).toBe(true);
   });
 
+  it('returns true for the art gallery card', () => {
+    expect(hasStaticCard('art')).toBe(true);
+  });
+
   it('returns true for the status card once its asset exists', () => {
     expect(hasStaticCard('status')).toBe(true);
   });

@@ -88,6 +88,14 @@ export const links: Link[] = [
     cardColor: CARD_COLORS.rustBlue,
   },
   {
+    id: 'art',
+    title: 'Gallery',
+    url: 'https://art.klaushofrichter.net',
+    abstract: 'Rooms of my own paintings and photographs: colors, dogs, and food.',
+    gradient: 'linear-gradient(135deg, #1e3a5f, #c8a24a)',
+    cardColor: CARD_COLORS.stone,
+  },
+  {
     id: 'status',
     title: 'Status',
     url: 'https://status.klaushofrichter.net',
