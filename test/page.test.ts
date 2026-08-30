@@ -8,7 +8,7 @@ vi.mock('../src/refreshImages', () => ({
 
 vi.mock('../src/staticCards', () => ({
   hasStaticCard: vi.fn().mockReturnValue(false),
-  staticCardUrl: vi.fn((id: string) => `/assets/cards/${id}.png`),
+  staticCardUrl: vi.fn((id: string) => `/assets/cards/${id}.webp`),
 }));
 
 import { hasImage } from '../src/refreshImages';
@@ -32,7 +32,7 @@ describe('renderPage card images', () => {
 
     const html = renderPage(false);
 
-    expect(html).toContain('src="/assets/cards/linkedin.png"');
+    expect(html).toContain('src="/assets/cards/linkedin.webp"');
   });
 
   it('falls back to the dynamic /images/:id route when no static card exists', () => {

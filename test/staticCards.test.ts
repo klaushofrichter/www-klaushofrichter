@@ -31,6 +31,6 @@ describe('hasStaticCard', () => {
 
 describe('staticCardUrl', () => {
   it('returns the /assets/cards/ URL for an id', () => {
-    expect(staticCardUrl('github')).toBe('/assets/cards/github.png');
+    expect(staticCardUrl('github')).toBe('/assets/cards/github.webp');
   });
 });

@@ -11,7 +11,7 @@ vi.mock('../src/refreshImages', () => ({
 
 vi.mock('../src/staticCards', () => ({
   hasStaticCard: vi.fn().mockReturnValue(false),
-  staticCardUrl: vi.fn((id: string) => `/assets/cards/${id}.png`),
+  staticCardUrl: vi.fn((id: string) => `/assets/cards/${id}.webp`),
 }));
 
 import { refreshAllImages } from '../src/refreshImages';
