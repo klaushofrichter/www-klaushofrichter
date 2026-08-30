@@ -55,6 +55,14 @@ this file is where notes are written *before* a release.
 - Card titles are now `h2` rather than `h3`. Jumping `h1` → `h3` skipped a
   level, the one accessibility audit the site was failing.
 
+- Hardened the deploy's version step: a failed `gh release list` used to be
+  swallowed by `|| true` and read as "no releases today", silently reusing a
+  version already shipped. It now fails the step.
+- The deploy's smoke test checks the served version inside its retry loop
+  rather than once after it — ingress can answer from the previous revision
+  for a moment after the ksvc reports Ready, which is a race to wait out, not
+  a deploy failure.
+
 ### Changed
 
 - Upgraded the runtime from Node 20 to Node 24 (`node:24-alpine` in both

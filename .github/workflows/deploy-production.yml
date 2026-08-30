@@ -45,9 +45,13 @@ jobs:
           # filed under tomorrow.
           DATE=$(TZ=America/Chicago date +%Y.%m.%d)
           # Same-day counter, derived from the releases that already exist -
-          # the tags are the state, so nothing needs storing.
-          TODAY=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 200 \
-                    --json tagName -q '.[].tagName' | grep -c "^v${DATE}\." || true)
+          # the tags are the state, so nothing needs storing. Listed in its own
+          # assignment so a gh failure (rate limit, API blip) fails the step: if
+          # it were folded into the `|| true` below, an errored list would read
+          # as "no releases today" and silently reuse a version already shipped.
+          RELEASES=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 200 \
+                       --json tagName -q '.[].tagName')
+          TODAY=$(printf '%s\n' "$RELEASES" | grep -c "^v${DATE}\." || true)
           VERSION="${DATE}.$((TODAY + 1))"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Releasing v$VERSION"
@@ -116,18 +120,33 @@ jobs:
         run: |
           set -euo pipefail
           BASE=https://www.klaushofrichter.net
+          # The deployed build must be the one this run just stamped, so the
+          # version is checked inside the retry loop rather than once after it:
+          # ingress can still answer from the previous revision for a moment
+          # after the ksvc reports Ready, and that is a race to wait out, not a
+          # deploy failure.
+          code=""; served=""; ok=""
           for i in $(seq 1 10); do
             code=$(curl -s -o /tmp/health.json -w "%{http_code}" "$BASE/health" || true)
-            [ "$code" = "200" ] && echo "health ok" && break
-            echo "health not ready (HTTP ${code}), retry ${i}/10"; sleep 6
+            if [ "$code" = "200" ]; then
+              # grep -o, not a greedy sed: this pins to the "version" key itself
+              # rather than to the last thing in the payload that looks like one.
+              # `|| true`: pipefail would otherwise turn a version-less body
+              # (or head closing the pipe) into a hard failure instead of a retry.
+              served=$(grep -o '"version":"[^"]*"' /tmp/health.json | head -1 | cut -d'"' -f4 || true)
+              if [ "$served" = "$VERSION" ]; then
+                ok=1; echo "health ok, serving ${served}"; break
+              fi
+              echo "still serving ${served:-unknown}, waiting for ${VERSION} (retry ${i}/10)"
+            else
+              echo "health not ready (HTTP ${code}), retry ${i}/10"
+            fi
+            sleep 6
           done
-          [ "$code" = "200" ] || { echo "::error::/health did not return 200"; exit 1; }
-          # The deployed build must be the one this run just stamped.
-          # sed, not jq: the self-hosted runner has no jq installed.
-          served=$(sed -n 's/.*"version":"\([^"]*\)".*/\1/p' /tmp/health.json)
-          [ "$served" = "$VERSION" ] \
-            || { echo "::error::/health reports ${served}, expected ${VERSION}"; exit 1; }
-          echo "version ok: $served"
+          [ -n "$ok" ] || {
+            echo "::error::/health never reported ${VERSION} (last: HTTP ${code:-none}, version ${served:-none})"
+            exit 1
+          }
           page=$(curl -s -o /tmp/page.html -w "%{http_code}" "$BASE/")
           [ "$page" = "200" ] || { echo "::error::public page returned ${page}"; exit 1; }
           grep -q 'id="app-version"' /tmp/page.html \
