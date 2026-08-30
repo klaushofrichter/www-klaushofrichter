@@ -42,6 +42,11 @@ this file is where notes are written *before* a release.
 - Added Google OAuth login (top-right "Login"/"Logout" button, restricted
   to klaus@klaushofrichter.net) and an auth-gated status.klaushofrichter.net
   card that only appears once logged in.
+- Completed the social preview tags on `GET /`: `og:site_name`,
+  `og:image:type`/`width`/`height`/`alt`, a plain `description`, and the
+  `twitter:*` set with `twitter:card: summary_large_image` — without which X
+  renders a small thumbnail. A test pins the declared image dimensions to the
+  actual PNG header so they cannot drift.
 
 ### Changed
 
