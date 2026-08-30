@@ -48,8 +48,8 @@ npm run dev
 
 Each card's hero image resolves in this order:
 
-1. **Static card asset** — `assets/cards/<id>.png`, a hand-curated screenshot
-   committed to the repo (currently all 6 links have one). If present, it's
+1. **Static card asset** — `assets/cards/<id>.webp`, a hand-curated screenshot
+   committed to the repo (currently every link has one). If present, it's
    used as-is: no network fetch at startup, no daily cron entry for that
    link. Ships baked into the Docker image.
 2. **Dynamic `og:image` fetch** — for any link without a static asset, the
@@ -64,6 +64,22 @@ Each card's hero image resolves in this order:
 
 The card image is a clickable link to the card's URL. See
 `docs/superpowers/specs/2026-08-20-homepage-design.md` for the full design.
+
+### Card images
+
+Card assets are **WebP at 800px wide**, roughly 2x the widest the 110px-tall
+hero slot ever gets. They were 1200x630 PNGs, which made the page 4.4MB and
+held mobile LCP at 3.6s on PageSpeed Insights; converting dropped the set from
+6.2MB to 0.35MB. To add one, capture the screenshot and convert it:
+
+```sh
+npm install sharp --no-save
+node -e "require('sharp')('shot.png').resize({width:800}).webp({quality:82}).toFile('assets/cards/<id>.webp')"
+npm uninstall sharp
+```
+
+`assets/og-image.png` deliberately stays PNG — some social scrapers still do
+not accept WebP.
 
 ## Login
 

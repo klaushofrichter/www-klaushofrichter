@@ -47,6 +47,13 @@ this file is where notes are written *before* a release.
   `twitter:*` set with `twitter:card: summary_large_image` — without which X
   renders a small thumbnail. A test pins the declared image dimensions to the
   actual PNG header so they cannot drift.
+- Converted the card images from 1200x630 PNG to 800px WebP: the set went
+  from 6.2MB to 0.35MB (-94%), which was the page's entire weight problem —
+  PageSpeed Insights measured a 4,416 KiB page and flagged 4,079 KiB of it as
+  avoidable, holding mobile LCP at 3.6s. `assets/og-image.png` stays PNG for
+  scraper compatibility.
+- Card titles are now `h2` rather than `h3`. Jumping `h1` → `h3` skipped a
+  level, the one accessibility audit the site was failing.
 
 ### Changed
 

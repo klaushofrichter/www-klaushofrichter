@@ -41,7 +41,7 @@ function renderCard(link: Link): string {
         <div class="card" style="background: ${link.cardColor};">
           <a class="card-image" style="background: ${link.gradient};" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer">${imageMarkup}</a>
           <div class="card-body">
-            <h3>${escapeHtml(link.title)}</h3>
+            <h2>${escapeHtml(link.title)}</h2>
             <p>${escapeHtml(link.abstract)}</p>
             <a class="card-link" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(displayUrl(link.url))} →</a>
           </div>
@@ -86,7 +86,7 @@ const PAGE_CSS = `
   .card-image { height: 110px; display: flex; align-items: center; justify-content: center; text-decoration: none; }
   .card-image-img { width: 100%; height: 100%; object-fit: cover; }
   .card-body { padding: 14px; }
-  .card-body h3 { margin: 0; font-size: 14px; }
+  .card-body h2 { margin: 0; font-size: 14px; }
   .card-body p { font-size: 12px; opacity: 0.7; margin: 5px 0 0; }
   .card-link { display: inline-block; margin-top: 10px; font-size: 11px; color: #93a5fd; text-decoration: none; }
   .card-link:hover { text-decoration: underline; }
