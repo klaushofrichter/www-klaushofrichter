@@ -8,6 +8,7 @@ const ABOUT_BODY =
   'Engineer, tinkerer, and occasional puppy photographer. This page collects the places you can find me online — from professional profiles to side projects and creative work.';
 const FOOTER_TEXT = 'Contact: klaus@klaushofrichter.net';
 const SITE_URL = 'https://www.klaushofrichter.net';
+const OG_IMAGE_ALT = 'Klaus Hofrichter — engineer, tinkerer, and occasional puppy photographer.';
 
 function escapeHtml(value: string): string {
   return value
@@ -187,11 +188,26 @@ export function renderPage(isAuthenticated: boolean): string {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Klaus Hofrichter</title>
+    <meta name="description" content="${escapeHtml(ABOUT_BODY)}" />
+    <meta property="og:site_name" content="${escapeHtml(ABOUT_TITLE)}" />
     <meta property="og:title" content="Klaus Hofrichter" />
     <meta property="og:description" content="${escapeHtml(ABOUT_BODY)}" />
     <meta property="og:image" content="${SITE_URL}/assets/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <!-- Dimensions let a scraper reserve the right space before the image
+         itself has loaded; they must match assets/og-image.png. -->
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="${escapeHtml(OG_IMAGE_ALT)}" />
     <meta property="og:url" content="${SITE_URL}/" />
     <meta property="og:type" content="website" />
+    <!-- X reads og:* for everything else, but renders a small thumbnail
+         unless twitter:card explicitly asks for the large one. -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Klaus Hofrichter" />
+    <meta name="twitter:description" content="${escapeHtml(ABOUT_BODY)}" />
+    <meta name="twitter:image" content="${SITE_URL}/assets/og-image.png" />
+    <meta name="twitter:image:alt" content="${escapeHtml(OG_IMAGE_ALT)}" />
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png" />

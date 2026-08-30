@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 
 vi.mock('../src/refreshImages', () => ({
   hasImage: vi.fn().mockReturnValue(false),
@@ -92,5 +94,42 @@ describe('renderPage version label', () => {
     expect(html).toContain('<span id="app-version" title="Deployed build">2026.08.26.1</span>');
     expect(html.indexOf('id="app-version"')).toBeLessThan(html.indexOf('id="auth-button"'));
     vi.unstubAllEnvs();
+  });
+});
+
+describe('renderPage social preview tags', () => {
+  const html = renderPage(false);
+
+  it('emits the Open Graph tags a scraper needs', () => {
+    expect(html).toContain('<meta property="og:site_name" content="Klaus Hofrichter" />');
+    expect(html).toContain('<meta property="og:title" content="Klaus Hofrichter" />');
+    expect(html).toContain(
+      '<meta property="og:image" content="https://www.klaushofrichter.net/assets/og-image.png" />'
+    );
+    expect(html).toContain('<meta property="og:image:type" content="image/png" />');
+    expect(html).toContain('<meta property="og:url" content="https://www.klaushofrichter.net/" />');
+    expect(html).toContain('<meta property="og:type" content="website" />');
+    expect(html).toMatch(/<meta property="og:description" content="[^"]+" \/>/);
+    expect(html).toMatch(/<meta property="og:image:alt" content="[^"]+" \/>/);
+  });
+
+  it('asks X for the large card rather than the default thumbnail', () => {
+    expect(html).toContain('<meta name="twitter:card" content="summary_large_image" />');
+    expect(html).toContain(
+      '<meta name="twitter:image" content="https://www.klaushofrichter.net/assets/og-image.png" />'
+    );
+    expect(html).toMatch(/<meta name="twitter:title" content="[^"]+" \/>/);
+    expect(html).toMatch(/<meta name="twitter:description" content="[^"]+" \/>/);
+  });
+
+  it('declares dimensions that match the actual og-image asset', () => {
+    // A stale width/height makes a scraper reserve the wrong space, and the
+    // failure is invisible until someone shares a link - so pin it to the file.
+    const png = fs.readFileSync(path.join(process.cwd(), 'assets', 'og-image.png'));
+    const width = png.readUInt32BE(16);
+    const height = png.readUInt32BE(20);
+
+    expect(html).toContain(`<meta property="og:image:width" content="${width}" />`);
+    expect(html).toContain(`<meta property="og:image:height" content="${height}" />`);
   });
 });

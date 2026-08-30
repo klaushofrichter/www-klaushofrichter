@@ -24,6 +24,18 @@ Instagram, Medium, and Skylar Technology, each with a hero image (see
   image and favicons (`assets/og-image.png`, `assets/favicon-16x16.png`,
   `assets/favicon-32x32.png`, `assets/apple-touch-icon.png`).
 
+### Social previews
+
+`GET /` carries a full Open Graph set — `og:site_name`, `og:title`,
+`og:description`, `og:url`, `og:type`, and `og:image` with its `type`, `width`,
+`height`, and `alt` — plus the `twitter:*` equivalents. `twitter:card` is
+`summary_large_image`, without which X renders a small thumbnail even though it
+reads the `og:*` tags for everything else.
+
+The declared `og:image:width`/`height` must match `assets/og-image.png`; a test
+reads the PNG header and fails if they drift, since nothing else would catch it
+until someone shared a link.
+
 ## Development
 
 ```bash
