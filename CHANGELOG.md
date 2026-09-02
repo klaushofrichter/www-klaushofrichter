@@ -99,6 +99,10 @@ this file is where notes are written *before* a release.
   production, rather than trusting that a green tick somewhere once meant
   something.
 
+- The version label in the page header links to this repository once signed
+  in, and stays inert text when logged out — a build identifier next to a
+  source link is operator detail, not page content.
+
 ### Changed
 
 - Upgraded the runtime from Node 20 to Node 24 (`node:24-alpine` in both
