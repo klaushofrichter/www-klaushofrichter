@@ -83,6 +83,9 @@ this file is where notes are written *before* a release.
   were landing unverified.
 - Added the Swift Sensors card to the protected area
   (`my.swiftsensors.net`) and CI/Dependabot badges to the README.
+- Aligned `@types/node` with the runtime (20 -> 26). It had been left three
+  majors behind `node:26-alpine`, so the type definitions described APIs the
+  container does not have and missed the ones it does.
 
 ### Changed
 
