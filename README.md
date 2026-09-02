@@ -1,5 +1,16 @@
 # www-klaushofrichter
 
+[![PR checks](https://github.com/klaushofrichter/www-klaushofrichter/actions/workflows/production-checks.yml/badge.svg)](https://github.com/klaushofrichter/www-klaushofrichter/actions/workflows/production-checks.yml)
+[![Build and publish image](https://github.com/klaushofrichter/www-klaushofrichter/actions/workflows/build-push.yml/badge.svg)](https://github.com/klaushofrichter/www-klaushofrichter/actions/workflows/build-push.yml)
+[![Deploy production](https://github.com/klaushofrichter/www-klaushofrichter/actions/workflows/deploy-production.yml/badge.svg)](https://github.com/klaushofrichter/www-klaushofrichter/actions/workflows/deploy-production.yml)
+[![Dependabot](https://img.shields.io/badge/dependabot-enabled-025E8C?logo=dependabot&logoColor=white)](https://github.com/klaushofrichter/www-klaushofrichter/security/dependabot)
+
+<!-- The first three badges are live: GitHub renders the latest run's status
+     for each workflow. The Dependabot one is static - GitHub publishes no
+     endpoint for alert status on a repo, so it asserts that alerts, security
+     updates, and .github/dependabot.yml are all in place rather than checking
+     them. If Dependabot is ever turned off, this badge will not notice. -->
+
 Personal homepage for Klaus Hofrichter, served at
 [www.klaushofrichter.net](https://www.klaushofrichter.net) — an about
 section plus a grid of links to LinkedIn, GitHub, past portfolio/blog work,

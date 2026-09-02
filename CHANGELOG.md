@@ -81,6 +81,8 @@ this file is where notes are written *before* a release.
   Previously a PR to main ran nothing: `build-push.yml` triggers on push and
   `production-checks.yml` only listened for production, so Dependabot's bumps
   were landing unverified.
+- Added the Swift Sensors card to the protected area
+  (`my.swiftsensors.net`) and CI/Dependabot badges to the README.
 
 ### Changed
 

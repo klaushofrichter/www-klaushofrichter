@@ -228,4 +228,13 @@ export const links: Link[] = [
     cardColor: CARD_COLORS.forest,
     requiresAuth: true,
   },
+  {
+    id: 'swiftsensors',
+    title: 'Swift Sensors',
+    url: 'https://my.swiftsensors.net',
+    abstract: 'Temperature, humidity, and door sensor monitoring with alerts.',
+    gradient: 'linear-gradient(135deg, #0e7490, #22d3ee)',
+    cardColor: CARD_COLORS.slate,
+    requiresAuth: true,
+  },
 ];
