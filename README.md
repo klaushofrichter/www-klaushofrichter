@@ -20,9 +20,11 @@
 
 Personal homepage for Klaus Hofrichter, served at
 [www.klaushofrichter.net](https://www.klaushofrichter.net) — an about
-section plus a grid of links to LinkedIn, GitHub, past portfolio/blog work,
-Instagram, Medium, and Skylar Technology, each with a hero image (see
-"Image refresh" below).
+section plus a grid of link cards, each with a hero image (see "Image
+refresh" below). The public cards cover professional profiles, side projects
+and creative work, with older sites grouped at the end and marked
+`(archive)`; a further set is auth-gated (see "Login"). `src/links.ts` is the
+single source of truth for all of them.
 
 ## API
 
@@ -35,7 +37,7 @@ Instagram, Medium, and Skylar Technology, each with a hero image (see
   ⟳ button in the page's top-right corner). Subject to a 60-second
   cooldown; returns `429` if called again too soon.
 - `GET /health` — returns
-  `{"status": "ok", "service": "www-klaushofrichter", "version": "2026.08.26.1"}`.
+  `{"status": "ok", "service": "www-klaushofrichter", "version": "2026.09.02.9"}`.
   The version is stamped into the image at deploy time (see "Versioning and
   releases"); it reads `dev` for a local build.
 - `/assets/*` — static asset serving for the og:image social-preview
@@ -58,9 +60,13 @@ until someone shared a link.
 
 ```bash
 npm install
-npm test
-npm run dev
+npm test        # vitest, plus npm audit in CI
+npm run dev     # tsx, reads .env
 ```
+
+Node 26 — matching `node:26-alpine` in the Dockerfile, `node-version: 26` in
+the workflows, and `@types/node` in `package.json`. Those four should always
+name the same major.
 
 ## Image refresh
 
@@ -105,8 +111,10 @@ A "Login" button in the top-right corner starts a Google OAuth sign-in
 (`GET /auth/google/login`). Only `klaus@klaushofrichter.net` (configured
 via the `ALLOWED_EMAILS` env var) can complete it — anyone else is sent
 back to `/` with an error toast. Once logged in, the button becomes
-"Logout" (`GET /auth/logout`), and cards marked as auth-gated (currently
-just the `status.klaushofrichter.net` card) become visible. The session
+"Logout" (`GET /auth/logout`), and the auth-gated cards become visible —
+14 of them at present (status, dashboards, and operational consoles), each
+marked `requiresAuth: true` in `src/links.ts`. Logged-out visitors never
+receive their markup at all, rather than having it hidden in CSS. The session
 is a signed, httpOnly cookie (7-day expiry) — there's no server-side
 session store.
 
@@ -115,16 +123,35 @@ values; `npm run dev` loads it automatically.
 
 ## End-to-end smoke test
 
-`e2e/smoke.spec.ts` (Playwright) checks the home page and `/health` against
-a running instance. Run it locally against `npm run dev`/Docker with
-`BASE_URL=http://localhost:8080 npm run test:e2e`. It runs in CI as the `e2e`
-job of the production PR checks, on GitHub's runners against a locally started
-server — not in the deploy, where installing a browser exceeds the in-cluster
-runner's memory limit and gets it OOM-killed.
+`e2e/smoke.spec.ts` (Playwright) checks, against a running instance: that the
+public cards render (asserted by card URL rather than title, since titles are
+editorial and pick up markers like `(archive)`), that auth-gated cards are
+absent for a logged-out visitor, that `/health` reports a well-formed version,
+and that the page header shows it. Run it locally against `npm run dev`/Docker
+with `BASE_URL=http://localhost:8080 npm run test:e2e`. In CI it is the `e2e`
+job of `production-checks.yml`, which runs on pull requests to **both** `main`
+and `production` — on GitHub's runners against a locally started server, not in
+the deploy, where installing a browser exceeds the in-cluster runner's memory
+limit and gets it OOM-killed.
 
 The deploy's own smoke test is `curl`-based: after the rollout it waits for
 `/health` to return 200, asserts the version it reports is the one that run
 just stamped, and checks that `/` returns 200 with the version label present.
+
+## Dependency security
+
+Three layers, with different timing:
+
+- **Dependabot alerts + security updates** — continuous; they fire when an
+  advisory is published, not on a schedule.
+- **Version updates** — `.github/dependabot.yml`, weekly on Mondays, covering
+  npm, github-actions, and the Docker base image. Minor and patch updates are
+  grouped; majors arrive one at a time.
+- **`npm audit --audit-level=high`** in the `test` job — the part that
+  *blocks*. Noticing a vulnerable dependency does not stop it being merged;
+  failing a required check does. The threshold is `high` rather than npm's
+  default so that a moderate advisory whose only fix is a major upgrade cannot
+  wedge unrelated merges.
 
 ## Versioning and releases
 
@@ -138,6 +165,12 @@ under `## [Unreleased]` in `CHANGELOG.md`, followed by the commits since the
 previous release. The existing tags are the only state, so nothing needs
 bumping and a failed deploy produces no release.
 
+Each release also carries a **Verified at release** section: what the deploy's
+own smoke test observed on the public URL — the version `/health` reported, the
+page status, the UTC timestamp, and a link to the run. Because the release step
+runs only after that check passes, the section's presence is itself the claim; a
+failed verification cuts no release at all.
+
 The running build reports its version on `GET /health` and in the page
 header, to the left of the Login/Logout button.
 
@@ -147,5 +180,6 @@ Builds and pushes to `ghcr.io/klaushofrichter/www-klaushofrichter` via GitHub
 Actions on push to `main`. Deploying to production happens on merge to the
 `production` branch, via an in-cluster self-hosted GitHub Actions runner —
 see `klaushofrichter/kube-setup`'s `docs/self-hosted-runner-cicd-pattern.md`
-for the full design, and its `manifests/www/` and `manifests/www-klaushofrichter-runner/`
-for this service's cluster manifests.
+for the full design, and its `manifests/www-klaushofrichter/` (Knative Service
++ DomainMapping) and `manifests/www-klaushofrichter-runner/` (this repo's
+dedicated runner) for this service's cluster manifests.
