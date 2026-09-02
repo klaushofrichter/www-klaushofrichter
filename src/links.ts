@@ -40,14 +40,6 @@ export const links: Link[] = [
     cardColor: CARD_COLORS.slate,
   },
   {
-    id: 'portfolio2017',
-    title: 'Portfolio 2017',
-    url: 'https://klaushofrichter.wordpress.com',
-    abstract: 'An earlier portfolio and blog archive.',
-    gradient: 'linear-gradient(135deg, #6b7280, #9ca3af)',
-    cardColor: CARD_COLORS.stone,
-  },
-  {
     id: 'instagram',
     title: 'Instagram',
     url: 'https://www.instagram.com/klaushofrichter',
@@ -62,14 +54,6 @@ export const links: Link[] = [
     abstract: 'A self-hosted gallery of my Instagram photos, served from S3.',
     gradient: 'linear-gradient(135deg, #c13584, #833ab4)',
     cardColor: CARD_COLORS.teal,
-  },
-  {
-    id: 'threepuppies',
-    title: 'Three Puppies',
-    url: 'https://three-pups.mystrikingly.com',
-    abstract: 'A small site about three very good dogs.',
-    gradient: 'linear-gradient(135deg, #059669, #10b981)',
-    cardColor: CARD_COLORS.forest,
   },
   {
     id: 'medium',
@@ -89,11 +73,27 @@ export const links: Link[] = [
   },
   {
     id: 'art',
-    title: 'Gallery',
+    title: 'Art',
     url: 'https://art.klaushofrichter.net',
     abstract: 'Rooms of my own paintings and photographs: colors, dogs, and food.',
     gradient: 'linear-gradient(135deg, #1e3a5f, #c8a24a)',
     cardColor: CARD_COLORS.stone,
+  },
+  {
+    id: 'portfolio2017',
+    title: 'Portfolio 2017 (archive)',
+    url: 'https://klaushofrichter.wordpress.com',
+    abstract: 'An earlier portfolio and blog archive.',
+    gradient: 'linear-gradient(135deg, #6b7280, #9ca3af)',
+    cardColor: CARD_COLORS.ember,
+  },
+  {
+    id: 'threepuppies',
+    title: 'Three Puppies (archive)',
+    url: 'https://three-pups.mystrikingly.com',
+    abstract: 'A small site about three very good dogs.',
+    gradient: 'linear-gradient(135deg, #059669, #10b981)',
+    cardColor: CARD_COLORS.forest,
   },
   {
     id: 'blog',

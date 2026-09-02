@@ -4,12 +4,20 @@ test('home page loads with the about section and all cards', async ({ page }) =>
   const response = await page.goto('/');
   expect(response?.status()).toBe(200);
   await expect(page.locator('h1')).toHaveText('Klaus Hofrichter');
-  await expect(page.getByText('LinkedIn', { exact: true })).toBeVisible();
-  await expect(page.getByText('GitHub', { exact: true })).toBeVisible();
-  await expect(page.getByText('Portfolio 2017', { exact: true })).toBeVisible();
-  await expect(page.getByText('Instagram', { exact: true })).toBeVisible();
-  await expect(page.getByText('Three Puppies', { exact: true })).toBeVisible();
-  await expect(page.getByText('Medium', { exact: true })).toBeVisible();
+  // Asserted by card URL rather than by title: the titles are editorial (they
+  // pick up markers like "(archive)"), the links are what the page is for.
+  for (const href of [
+    'https://www.linkedin.com/in/klaushofrichter',
+    'https://github.com/klaushofrichter',
+    'https://klaushofrichter.wordpress.com',
+    'https://www.instagram.com/klaushofrichter',
+    'https://three-pups.mystrikingly.com',
+    'https://klaushofrichter.medium.com/',
+  ]) {
+    await expect(page.locator(`a[href="${href}"]`).first()).toBeVisible();
+  }
+  // The auth-gated cards must not leak to a logged-out visitor.
+  await expect(page.locator('a[href="https://status.klaushofrichter.net"]')).toHaveCount(0);
   await expect(page.getByText('Contact: klaus@klaushofrichter.net')).toBeVisible();
 });
 
