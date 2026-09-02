@@ -23,7 +23,17 @@ const imagesRateLimit = rateLimit({
 // analysis (CodeQL js/path-injection) that can't see the map-membership
 // guarantee on its own.
 imagesRouter.get('/images/:id', imagesRateLimit, (req: Request, res: Response) => {
-  const id = path.basename(req.params.id);
+  // express 5 types a route param as string | string[] (path-to-regexp v8 can
+  // repeat one). This route's pattern cannot produce an array, but reject it
+  // explicitly rather than coerce - an array here would mean the route shape
+  // changed, and the VALID_ID check below is the only thing between this and
+  // the filesystem.
+  const raw = req.params.id;
+  if (typeof raw !== 'string') {
+    res.status(404).end();
+    return;
+  }
+  const id = path.basename(raw);
   if (!VALID_ID.test(id)) {
     res.status(404).end();
     return;

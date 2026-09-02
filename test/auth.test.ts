@@ -4,11 +4,15 @@ import request from 'supertest';
 const getTokenMock = vi.fn();
 const verifyIdTokenMock = vi.fn();
 
+// A class, not vi.fn().mockImplementation(() => ({...})): the route calls
+// `new OAuth2Client(...)`, and vitest 4 invokes a mock's implementation with
+// `new`, which an arrow function cannot be. Nothing asserts on the constructor
+// itself - the assertions are all on the two method mocks below.
 vi.mock('google-auth-library', () => ({
-  OAuth2Client: vi.fn().mockImplementation(() => ({
-    getToken: getTokenMock,
-    verifyIdToken: verifyIdTokenMock,
-  })),
+  OAuth2Client: class {
+    getToken = getTokenMock;
+    verifyIdToken = verifyIdTokenMock;
+  },
 }));
 
 import { createApp } from '../src/app';
