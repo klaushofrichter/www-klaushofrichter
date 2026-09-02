@@ -172,7 +172,8 @@ runs only after that check passes, the section's presence is itself the claim; a
 failed verification cuts no release at all.
 
 The running build reports its version on `GET /health` and in the page
-header, to the left of the Login/Logout button.
+header, to the left of the Login/Logout button. For a signed-in visitor that
+label is a link to this repository; logged out it stays inert text.
 
 ## Deployment
 

@@ -8,6 +8,7 @@ const ABOUT_BODY =
   'Engineer, tinkerer, and occasional puppy photographer. This page collects the places you can find me online — from professional profiles to side projects and creative work.';
 const FOOTER_TEXT = 'Contact: klaus@klaushofrichter.net';
 const SITE_URL = 'https://www.klaushofrichter.net';
+const REPO_URL = 'https://github.com/klaushofrichter/www-klaushofrichter';
 const OG_IMAGE_ALT = 'Klaus Hofrichter — engineer, tinkerer, and occasional puppy photographer.';
 
 function escapeHtml(value: string): string {
@@ -104,6 +105,8 @@ const PAGE_CSS = `
     opacity: 0.25; transition: opacity 0.2s;
   }
   .header-actions:hover #app-version { opacity: 0.6; }
+  a#app-version { text-decoration: none; }
+  a#app-version:hover { opacity: 1; text-decoration: underline; }
   #auth-button {
     display: inline-flex; align-items: center; justify-content: center;
     height: 36px; padding: 0 14px; border-radius: 18px;
@@ -179,6 +182,13 @@ const AUTH_ERROR_SCRIPT = `
 export function renderPage(isAuthenticated: boolean): string {
   const visibleLinks = links.filter((link) => !link.requiresAuth || isAuthenticated);
   const cards = visibleLinks.map(renderCard).join('\n');
+  // Signed in, the version doubles as a way into the source that built it;
+  // signed out it stays inert text. The id is on both so the deploy's smoke
+  // test - which greps the logged-out page for it - keeps working either way.
+  const version = escapeHtml(appVersion());
+  const versionMarkup = isAuthenticated
+    ? `<a id="app-version" href="${REPO_URL}" target="_blank" rel="noopener noreferrer" title="Deployed build - open the repository">${version}</a>`
+    : `<span id="app-version" title="Deployed build">${version}</span>`;
   const authButtonMarkup = isAuthenticated
     ? '<a id="auth-button" href="/auth/logout">Logout</a>'
     : '<a id="auth-button" href="/auth/google/login">Login</a>';
@@ -215,7 +225,7 @@ export function renderPage(isAuthenticated: boolean): string {
   </head>
   <body>
     <div class="header-actions">
-      <span id="app-version" title="Deployed build">${escapeHtml(appVersion())}</span>
+      ${versionMarkup}
       ${authButtonMarkup}
       <button id="refresh-button" title="Refresh images" aria-label="Refresh images">⟳</button>
     </div>

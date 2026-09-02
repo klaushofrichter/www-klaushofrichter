@@ -95,6 +95,26 @@ describe('renderPage version label', () => {
     expect(html.indexOf('id="app-version"')).toBeLessThan(html.indexOf('id="auth-button"'));
     vi.unstubAllEnvs();
   });
+
+  it('links the version to the repository once logged in', () => {
+    vi.stubEnv('APP_VERSION', '2026.09.02.10');
+
+    const html = renderPage(true);
+
+    expect(html).toContain(
+      '<a id="app-version" href="https://github.com/klaushofrichter/www-klaushofrichter" target="_blank" rel="noopener noreferrer" title="Deployed build - open the repository">2026.09.02.10</a>'
+    );
+    vi.unstubAllEnvs();
+  });
+
+  it('leaves the version inert for a logged-out visitor', () => {
+    const html = renderPage(false);
+
+    // The id has to survive in both states: the deploy's smoke test greps the
+    // logged-out page for it.
+    expect(html).toContain('id="app-version"');
+    expect(html).not.toContain('<a id="app-version"');
+  });
 });
 
 describe('renderPage social preview tags', () => {
