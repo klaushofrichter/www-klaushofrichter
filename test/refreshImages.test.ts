@@ -31,8 +31,8 @@ describe('refreshAllImages', () => {
 
     await refreshAllImages();
 
-    expect(mockedFetchOgImage).toHaveBeenCalledTimes(23);
-    expect(mockedDownloadImage).toHaveBeenCalledTimes(23);
+    expect(mockedFetchOgImage).toHaveBeenCalledTimes(24);
+    expect(mockedDownloadImage).toHaveBeenCalledTimes(24);
     expect(hasImage('linkedin')).toBe(true);
     expect(getImageContentType('linkedin')).toBe('image/jpeg');
   });
@@ -64,6 +64,6 @@ describe('refreshAllImages', () => {
     await refreshAllImages();
 
     expect(mockedFetchOgImage).not.toHaveBeenCalledWith(expect.stringContaining('linkedin'));
-    expect(mockedFetchOgImage).toHaveBeenCalledTimes(22);
+    expect(mockedFetchOgImage).toHaveBeenCalledTimes(23);
   });
 });

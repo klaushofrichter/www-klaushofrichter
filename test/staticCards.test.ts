@@ -22,6 +22,10 @@ describe('hasStaticCard', () => {
     expect(hasStaticCard('blog')).toBe(true);
   });
 
+  it('returns true for the Skylar the Doberman card', () => {
+    expect(hasStaticCard('skylardog')).toBe(true);
+  });
+
   it('returns true for the status card once its asset exists', () => {
     expect(hasStaticCard('status')).toBe(true);
   });
