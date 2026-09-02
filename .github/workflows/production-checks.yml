@@ -1,16 +1,20 @@
-name: Production PR checks
+name: PR checks
 
+# Both branches, not just production. PRs to main - Dependabot's, in particular
+# - previously ran nothing at all: build-push.yml triggers on push, and this
+# file only listened for production. Dependency bumps were landing on main
+# unverified and were first tested when someone opened the promotion PR.
 on:
   pull_request:
-    branches: [production]
+    branches: [main, production]
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
 
@@ -25,9 +29,9 @@ jobs:
     # caught before it is merged rather than after it is live.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
 
@@ -66,13 +70,13 @@ jobs:
       security-events: write
       actions: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: github/codeql-action/init@v3
+      - uses: github/codeql-action/init@v4
         with:
           languages: javascript-typescript
 
-      - uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/analyze@v4
         with:
           output: sarif-results
           upload: never
