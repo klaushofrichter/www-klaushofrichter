@@ -69,6 +69,18 @@ this file is where notes are written *before* a release.
 - Added `.github/dependabot.yml` (npm, github-actions, docker; weekly,
   grouped). Dependabot alerts and security updates were enabled as repo
   settings at the same time.
+- Worked through the Dependabot queue: express-rate-limit 8.7.0, tsx 4.23.13,
+  actions/checkout + actions/setup-node v7, codeql-action v4,
+  google-auth-library 11, TypeScript 7, and the base image to `node:26-alpine`
+  (with CI on Node 26 to match).
+- TypeScript 7 removed `"moduleResolution": "node"`, so tsconfig moves to
+  `nodenext` for both `module` and `moduleResolution`. `package.json` has
+  `"type": "commonjs"`, so the emit is still CJS — verified by running the
+  built `dist`, not just by compiling.
+- PR checks now run on pull requests to `main` as well as `production`.
+  Previously a PR to main ran nothing: `build-push.yml` triggers on push and
+  `production-checks.yml` only listened for production, so Dependabot's bumps
+  were landing unverified.
 
 ### Changed
 
