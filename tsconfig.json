@@ -1,8 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "commonjs",
-    "moduleResolution": "node",
+    // nodenext, not node10: TypeScript 7 removed "moduleResolution": "node".
+    // package.json has "type": "commonjs", so this still emits CJS - checked
+    // by running the built dist, not just by compiling.
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "lib": ["ES2022"],
     "outDir": "dist",
     "rootDir": "src",
