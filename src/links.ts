@@ -50,7 +50,7 @@ export const links: Link[] = [
   {
     id: 'instagetter',
     title: 'instagetter',
-    url: 'https://insta.skylar.technology',
+    url: 'https://insta.klaushofrichter.net',
     abstract: 'A self-hosted gallery of my Instagram photos, served from S3.',
     gradient: 'linear-gradient(135deg, #c13584, #833ab4)',
     cardColor: CARD_COLORS.teal,
