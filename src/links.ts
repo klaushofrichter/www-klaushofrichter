@@ -104,6 +104,14 @@ export const links: Link[] = [
     cardColor: CARD_COLORS.indigo,
   },
   {
+    id: 'skylardog',
+    title: 'Skylar the Doberman (archive)',
+    url: 'https://skylar.mystrikingly.com',
+    abstract: 'Monthly photos of Skylar, the Doberman with ears and tail. 2014 to 2016.',
+    gradient: 'linear-gradient(135deg, #3f2a1d, #4b5563)',
+    cardColor: CARD_COLORS.slate,
+  },
+  {
     id: 'status',
     title: 'Status',
     url: 'https://status.klaushofrichter.net',
