@@ -96,6 +96,14 @@ export const links: Link[] = [
     cardColor: CARD_COLORS.stone,
   },
   {
+    id: 'blog',
+    title: 'Random Thoughts Here (archive)',
+    url: 'https://blog.klaushofrichter.net',
+    abstract: 'An older personal blog: photos, notes, and a few things I came across. Last post 2024.',
+    gradient: 'linear-gradient(135deg, #7c3aed, #fb7185)',
+    cardColor: CARD_COLORS.indigo,
+  },
+  {
     id: 'status',
     title: 'Status',
     url: 'https://status.klaushofrichter.net',
