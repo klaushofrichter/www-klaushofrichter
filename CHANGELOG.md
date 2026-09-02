@@ -93,6 +93,12 @@ this file is where notes are written *before* a release.
   threshold is `high` rather than the default so a moderate advisory whose
   only fix is a major upgrade cannot wedge unrelated merges.
 
+- Releases now carry a "Verified at release" section: what the deploy's own
+  smoke test observed on the public URL, with the timestamp and a link to the
+  run. The point is a dated reference that this build answered correctly in
+  production, rather than trusting that a green tick somewhere once meant
+  something.
+
 ### Changed
 
 - Upgraded the runtime from Node 20 to Node 24 (`node:24-alpine` in both
