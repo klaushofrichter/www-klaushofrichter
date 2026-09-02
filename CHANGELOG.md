@@ -62,6 +62,13 @@ this file is where notes are written *before* a release.
   rather than once after it — ingress can answer from the previous revision
   for a moment after the ksvc reports Ready, which is a race to wait out, not
   a deploy failure.
+- Cleared every Dependabot advisory (1 critical, 1 high, 8 moderate) by taking
+  three majors: express 4 -> 5 (the only route to the patched `qs` 6.16.0 —
+  express 4 pins `qs: ~6.15.1`, below the fix), node-cron 3 -> 4, and vitest
+  2 -> 4. `npm audit` is now clean.
+- Added `.github/dependabot.yml` (npm, github-actions, docker; weekly,
+  grouped). Dependabot alerts and security updates were enabled as repo
+  settings at the same time.
 
 ### Changed
 
