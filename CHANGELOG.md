@@ -87,6 +87,12 @@ this file is where notes are written *before* a release.
   majors behind `node:26-alpine`, so the type definitions described APIs the
   container does not have and missed the ones it does.
 
+- PR checks now run `npm audit --audit-level=high`. Dependabot noticing a
+  vulnerable dependency did not stop one being merged and deployed while its
+  fix PR sat open; this makes the required `test` check fail instead. The
+  threshold is `high` rather than the default so a moderate advisory whose
+  only fix is a major upgrade cannot wedge unrelated merges.
+
 ### Changed
 
 - Upgraded the runtime from Node 20 to Node 24 (`node:24-alpine` in both

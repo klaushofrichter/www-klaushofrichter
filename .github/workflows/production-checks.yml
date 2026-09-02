@@ -22,6 +22,14 @@ jobs:
 
       - run: npm test
 
+      # Dependabot notices a vulnerable dependency, but noticing is not
+      # blocking: without this step a package with a known advisory can be
+      # merged and deployed while its fix PR sits open. Threshold is `high`
+      # rather than the default so that a moderate advisory whose only fix is
+      # a major upgrade cannot wedge unrelated merges - the alerts still
+      # surface those, they just do not stop the queue.
+      - run: npm audit --audit-level=high
+
   e2e:
     # The Playwright suite runs here, on GitHub's runners, rather than in the
     # deploy: installing a browser on the in-cluster self-hosted runner
