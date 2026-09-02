@@ -18,6 +18,10 @@ describe('hasStaticCard', () => {
     expect(hasStaticCard('art')).toBe(true);
   });
 
+  it('returns true for the blog card', () => {
+    expect(hasStaticCard('blog')).toBe(true);
+  });
+
   it('returns true for the status card once its asset exists', () => {
     expect(hasStaticCard('status')).toBe(true);
   });
