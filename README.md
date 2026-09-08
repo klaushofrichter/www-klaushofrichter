@@ -43,6 +43,8 @@ single source of truth for all of them.
 - `/assets/*` — static asset serving for the og:image social-preview
   image and favicons (`assets/og-image.png`, `assets/favicon-16x16.png`,
   `assets/favicon-32x32.png`, `assets/apple-touch-icon.png`).
+- `GET /public` — a listing of the files committed under `public/`, each a
+  download link; `GET /public/<filename>` serves one. See "Public files".
 
 ### Social previews
 
@@ -55,6 +57,22 @@ reads the `og:*` tags for everything else.
 The declared `og:image:width`/`height` must match `assets/og-image.png`; a test
 reads the PNG header and fails if they drift, since nothing else would catch it
 until someone shared a link.
+
+### Public files
+
+Anything committed under `public/` is served at `https://www.klaushofrichter.net/public`
+as a plain listing, with each entry a download link. The folder is copied into
+the runtime image by the Dockerfile, so adding or removing a file is a commit
+plus a deploy — there is no upload path and nothing is written at runtime.
+
+The listing is flat: files directly in `public/` are shown, subdirectories and
+dotfiles are skipped. Files are served by `express.static`, which resolves the
+path itself, so a traversal attempt like `/public/../.env` cannot escape the
+folder. Responses carry a one-hour `max-age`, which is safe because a given
+URL's bytes only change when a new image is deployed.
+
+Nothing on the homepage links to `/public` — it is a place to park a file you
+want to hand someone a URL for, not a section of the site.
 
 ## Development
 
