@@ -35,3 +35,18 @@ test('the page header shows the deployed version', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('#app-version')).toHaveText(/^(dev|\d{4}\.\d{2}\.\d{2}\.\d+)$/);
 });
+
+test('the public folder is listed and its files download', async ({ page, request }) => {
+  const response = await page.goto('/public');
+  expect(response?.status()).toBe(200);
+  // The listing is generated from whatever is committed under public/, so
+  // assert on the shape - at least one entry, and its link actually serves
+  // bytes - rather than on a filename that is expected to come and go.
+  const first = page.locator('li a').first();
+  await expect(first).toBeVisible();
+  const href = await first.getAttribute('href');
+  expect(href).toBeTruthy();
+  const download = await request.get(href!);
+  expect(download.status()).toBe(200);
+  expect((await download.body()).length).toBeGreaterThan(0);
+});

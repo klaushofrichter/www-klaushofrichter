@@ -153,6 +153,15 @@ jobs:
           grep -q 'id="app-version"' /tmp/page.html \
             || { echo "::error::page header is missing the version label"; exit 1; }
           echo "public page ok"
+          # The one check that exercises the image's contents rather than the
+          # code: public/ reaches the container through a Dockerfile COPY, so a
+          # missing or renamed COPY still builds, still passes every test, and
+          # only shows up as an empty listing here.
+          files=$(curl -s -o /tmp/public.html -w "%{http_code}" "$BASE/public")
+          [ "$files" = "200" ] || { echo "::error::/public returned ${files}"; exit 1; }
+          grep -q 'class="name"' /tmp/public.html \
+            || { echo "::error::/public listed no files - is public/ in the image?"; exit 1; }
+          echo "public file listing ok"
           # Recorded for the release notes below. The value of writing this into
           # the release is that it is evidence tied to a moment: this build
           # answered on the public URL at this timestamp. Reading it later beats

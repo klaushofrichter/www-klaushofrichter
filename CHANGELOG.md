@@ -20,6 +20,9 @@ this file is where notes are written *before* a release.
 
 ### Added
 
+- `GET /public` — a listing of the files committed under `public/`, each one a
+  download link, plus `GET /public/<filename>` to fetch one. The folder is
+  copied into the runtime image, so its contents change only on a deploy.
 - Replaced the placeholder static page with the real homepage: about
   section, responsive card grid (LinkedIn, GitHub, Portfolio 2017,
   Instagram, Three Puppies, Medium), each card showing a hero image

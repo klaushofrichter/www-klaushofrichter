@@ -18,6 +18,9 @@ RUN npm ci --omit=dev
 COPY --from=builder /app/dist ./dist
 COPY CHANGELOG.md ./
 COPY assets ./assets
+# Downloads served at /public. Baked in rather than mounted: they change
+# only when someone commits a file, which is a deploy anyway.
+COPY public ./public
 RUN mkdir -p /app/data/images && chown -R node:node /app/data
 USER node
 EXPOSE 8080

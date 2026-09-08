@@ -1,4 +1,5 @@
 import { appVersion } from '../version';
+import { escapeHtml } from './escapeHtml';
 import { links, Link } from '../links';
 import { hasImage } from '../refreshImages';
 import { hasStaticCard, staticCardUrl } from '../staticCards';
@@ -10,14 +11,6 @@ const FOOTER_TEXT = 'Contact: klaus@klaushofrichter.net';
 const SITE_URL = 'https://www.klaushofrichter.net';
 const REPO_URL = 'https://github.com/klaushofrichter/www-klaushofrichter';
 const OG_IMAGE_ALT = 'Klaus Hofrichter — engineer, tinkerer, and occasional puppy photographer.';
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 function displayUrl(url: string): string {
   return url.replace(/^https?:\/\//, '').replace(/\/$/, '');
