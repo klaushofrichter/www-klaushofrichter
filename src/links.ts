@@ -237,4 +237,13 @@ export const links: Link[] = [
     cardColor: CARD_COLORS.slate,
     requiresAuth: true,
   },
+  {
+    id: 'casavi',
+    title: 'casavi',
+    url: 'https://integra.mycasavi.com/app/c/391710/home',
+    abstract: 'Property management portal: notices, documents, contacts, and service requests.',
+    gradient: 'linear-gradient(135deg, #4b5d2a, #7c8f4b)',
+    cardColor: CARD_COLORS.stone,
+    requiresAuth: true,
+  },
 ];

@@ -10,6 +10,10 @@ vi.mock('../src/staticCards', () => ({
 }));
 
 import { fetchOgImage, downloadImage } from '../src/ogImage';
+// Counted from links.ts rather than hard-coded: these assertions are about
+// "every link" and "every link but one", and a literal turns adding a card
+// into an unrelated test failure.
+import { links } from '../src/links';
 import { hasStaticCard } from '../src/staticCards';
 import { refreshAllImages, hasImage, getImageContentType, imagePath } from '../src/refreshImages';
 
@@ -31,8 +35,8 @@ describe('refreshAllImages', () => {
 
     await refreshAllImages();
 
-    expect(mockedFetchOgImage).toHaveBeenCalledTimes(25);
-    expect(mockedDownloadImage).toHaveBeenCalledTimes(25);
+    expect(mockedFetchOgImage).toHaveBeenCalledTimes(links.length);
+    expect(mockedDownloadImage).toHaveBeenCalledTimes(links.length);
     expect(hasImage('linkedin')).toBe(true);
     expect(getImageContentType('linkedin')).toBe('image/jpeg');
   });
@@ -64,6 +68,6 @@ describe('refreshAllImages', () => {
     await refreshAllImages();
 
     expect(mockedFetchOgImage).not.toHaveBeenCalledWith(expect.stringContaining('linkedin'));
-    expect(mockedFetchOgImage).toHaveBeenCalledTimes(24);
+    expect(mockedFetchOgImage).toHaveBeenCalledTimes(links.length - 1);
   });
 });
