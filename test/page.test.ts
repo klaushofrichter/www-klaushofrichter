@@ -14,6 +14,7 @@ vi.mock('../src/staticCards', () => ({
 import { hasImage } from '../src/refreshImages';
 import { hasStaticCard } from '../src/staticCards';
 import { renderPage } from '../src/views/page';
+import { links } from '../src/links';
 
 const mockedHasImage = vi.mocked(hasImage);
 const mockedHasStaticCard = vi.mocked(hasStaticCard);
@@ -67,7 +68,10 @@ describe('renderPage auth-gated cards and login button', () => {
   it('hides auth-gated cards and shows a Login link when logged out', () => {
     const html = renderPage(false);
 
-    expect(html).not.toContain('>Status<');
+    // Every gated card, not one named example - see the note in index.test.ts.
+    for (const link of links.filter((l) => l.requiresAuth)) {
+      expect(html).not.toContain(`href="${link.url}"`);
+    }
     expect(html).toContain('id="auth-button" href="/auth/google/login">Login</a>');
     expect(html).not.toContain('href="/auth/logout"');
   });
@@ -75,7 +79,9 @@ describe('renderPage auth-gated cards and login button', () => {
   it('shows auth-gated cards and a Logout link when logged in', () => {
     const html = renderPage(true);
 
-    expect(html).toContain('>Status<');
+    for (const link of links.filter((l) => l.requiresAuth)) {
+      expect(html).toContain(`href="${link.url}"`);
+    }
     expect(html).toContain('id="auth-button" href="/auth/logout">Logout</a>');
     expect(html).not.toContain('href="/auth/google/login"');
   });
