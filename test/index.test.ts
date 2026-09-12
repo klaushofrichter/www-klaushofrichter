@@ -17,8 +17,28 @@ vi.mock('../src/staticCards', () => ({
 import { refreshAllImages } from '../src/refreshImages';
 import { createApp } from '../src/app';
 import { signSession } from '../src/session';
+// Derived from links.ts, not a hand-picked title: the status card used to
+// stand in for "an auth-gated card" here, and when it went public these
+// assertions would have kept passing while checking nothing.
+import { links } from '../src/links';
 
 const mockedRefreshAllImages = vi.mocked(refreshAllImages);
+
+const gatedLinks = links.filter((link) => link.requiresAuth);
+
+function expectGatedCardsHidden(html: string): void {
+  expect(gatedLinks.length).toBeGreaterThan(0);
+  for (const link of gatedLinks) {
+    expect(html).not.toContain(`href="${link.url}"`);
+  }
+}
+
+function expectGatedCardsVisible(html: string): void {
+  expect(gatedLinks.length).toBeGreaterThan(0);
+  for (const link of gatedLinks) {
+    expect(html).toContain(`href="${link.url}"`);
+  }
+}
 
 describe('GET /', () => {
   it('renders the about section, all 7 card titles, and the footer', async () => {
@@ -42,21 +62,21 @@ describe('GET /', () => {
     expect(response.text).toContain('favicon-32x32.png');
   });
 
-  it('does not render the status card or a Logout link with no session cookie', async () => {
+  it('does not render auth-gated cards or a Logout link with no session cookie', async () => {
     const app = createApp();
     const response = await request(app).get('/');
 
-    expect(response.text).not.toContain('>Status<');
+    expectGatedCardsHidden(response.text);
     expect(response.text).toContain('href="/auth/google/login">Login</a>');
   });
 
-  it('renders the status card and a Logout link with a valid session cookie', async () => {
+  it('renders the auth-gated cards and a Logout link with a valid session cookie', async () => {
     const app = createApp();
     const token = signSession('allowed@example.com');
     const response = await request(app).get('/').set('Cookie', `session=${token}`);
 
     expect(response.status).toBe(200);
-    expect(response.text).toContain('>Status<');
+    expectGatedCardsVisible(response.text);
     expect(response.text).toContain('href="/auth/logout">Logout</a>');
   });
 
@@ -65,7 +85,7 @@ describe('GET /', () => {
     const response = await request(app).get('/').set('Cookie', 'session=not-a-real-token');
 
     expect(response.status).toBe(200);
-    expect(response.text).not.toContain('>Status<');
+    expectGatedCardsHidden(response.text);
   });
 });
 

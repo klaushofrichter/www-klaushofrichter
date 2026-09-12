@@ -80,6 +80,14 @@ export const links: Link[] = [
     cardColor: CARD_COLORS.stone,
   },
   {
+    id: 'status',
+    title: 'Status',
+    url: 'https://status.klaushofrichter.net',
+    abstract: 'Live uptime and status monitoring for my services.',
+    gradient: 'linear-gradient(135deg, #16a34a, #0891b2)',
+    cardColor: CARD_COLORS.teal,
+  },
+  {
     id: 'portfolio2017',
     title: 'Portfolio 2017 (archive)',
     url: 'https://klaushofrichter.wordpress.com',
@@ -110,15 +118,6 @@ export const links: Link[] = [
     abstract: 'Monthly photos of Skylar, the Doberman with ears and tail. 2014 to 2016.',
     gradient: 'linear-gradient(135deg, #3f2a1d, #4b5563)',
     cardColor: CARD_COLORS.slate,
-  },
-  {
-    id: 'status',
-    title: 'Status',
-    url: 'https://status.klaushofrichter.net',
-    abstract: 'Live uptime and status monitoring for my services.',
-    gradient: 'linear-gradient(135deg, #16a34a, #0891b2)',
-    cardColor: CARD_COLORS.teal,
-    requiresAuth: true,
   },
   {
     id: 'headlamp',

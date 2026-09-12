@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { links } from '../src/links';
 
 test('home page loads with the about section and all cards', async ({ page }) => {
   const response = await page.goto('/');
@@ -13,11 +14,19 @@ test('home page loads with the about section and all cards', async ({ page }) =>
     'https://www.instagram.com/klaushofrichter',
     'https://three-pups.mystrikingly.com',
     'https://klaushofrichter.medium.com/',
+    'https://status.klaushofrichter.net',
   ]) {
     await expect(page.locator(`a[href="${href}"]`).first()).toBeVisible();
   }
-  // The auth-gated cards must not leak to a logged-out visitor.
-  await expect(page.locator('a[href="https://status.klaushofrichter.net"]')).toHaveCount(0);
+  // The auth-gated cards must not leak to a logged-out visitor. Driven off
+  // links.ts rather than one hand-picked URL: this used to name the status
+  // card, and when that card became public the assertion would have gone on
+  // passing while covering nothing.
+  const gated = links.filter((l) => l.requiresAuth);
+  expect(gated.length).toBeGreaterThan(0);
+  for (const link of gated) {
+    await expect(page.locator(`a[href="${link.url}"]`)).toHaveCount(0);
+  }
   await expect(page.getByText('Contact: klaus@klaushofrichter.net')).toBeVisible();
 });
 
