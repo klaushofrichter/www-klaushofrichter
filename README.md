@@ -130,8 +130,8 @@ A "Login" button in the top-right corner starts a Google OAuth sign-in
 via the `ALLOWED_EMAILS` env var) can complete it — anyone else is sent
 back to `/` with an error toast. Once logged in, the button becomes
 "Logout" (`GET /auth/logout`), and the auth-gated cards become visible —
-14 of them at present (status, dashboards, and operational consoles), each
-marked `requiresAuth: true` in `src/links.ts`. Logged-out visitors never
+dashboards, operational consoles, and a few personal apps, each marked
+`requiresAuth: true` in `src/links.ts`. Logged-out visitors never
 receive their markup at all, rather than having it hidden in CSS. The session
 is a signed, httpOnly cookie (7-day expiry) — there's no server-side
 session store.
