@@ -48,14 +48,6 @@ export const links: Link[] = [
     cardColor: CARD_COLORS.ember,
   },
   {
-    id: 'instagetter',
-    title: 'instagetter',
-    url: 'https://insta.klaushofrichter.net',
-    abstract: 'A self-hosted gallery of my Instagram photos, served from S3.',
-    gradient: 'linear-gradient(135deg, #c13584, #833ab4)',
-    cardColor: CARD_COLORS.teal,
-  },
-  {
     id: 'medium',
     title: 'Medium',
     url: 'https://klaushofrichter.medium.com/',
@@ -243,6 +235,15 @@ export const links: Link[] = [
     abstract: 'Property management portal: notices, documents, contacts, and service requests.',
     gradient: 'linear-gradient(135deg, #4b5d2a, #7c8f4b)',
     cardColor: CARD_COLORS.stone,
+    requiresAuth: true,
+  },
+  {
+    id: 'instagetter',
+    title: 'instagetter',
+    url: 'https://insta.klaushofrichter.net',
+    abstract: 'A self-hosted gallery of my Instagram photos, served from S3.',
+    gradient: 'linear-gradient(135deg, #c13584, #833ab4)',
+    cardColor: CARD_COLORS.teal,
     requiresAuth: true,
   },
 ];
