@@ -20,11 +20,11 @@
     "node-cron": "^4.6.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.47.0",
+    "@playwright/test": "^1.63.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^26.4.1",
+    "@types/node": "^26.5.1",
     "@types/supertest": "^7.2.1",
     "supertest": "^7.0.0",
     "tsx": "^4.23.13",
