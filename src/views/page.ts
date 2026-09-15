@@ -161,7 +161,9 @@ const AUTH_ERROR_SCRIPT = `
     var params = new URLSearchParams(window.location.search);
     if (params.get('auth_error') === '1') {
       var message = document.getElementById('refresh-message');
-      message.textContent = 'Login failed — only klaus@klaushofrichter.net can sign in.';
+      // Deliberately does not name the allowed addresses: this page is public,
+      // and the allow list (ALLOWED_EMAILS) is no longer a single address.
+      message.textContent = 'Login failed — this account is not allowed to sign in.';
       message.classList.add('visible');
       setTimeout(function () { message.classList.remove('visible'); }, 6000);
       params.delete('auth_error');

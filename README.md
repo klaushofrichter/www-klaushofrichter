@@ -126,9 +126,13 @@ not accept WebP.
 ## Login
 
 A "Login" button in the top-right corner starts a Google OAuth sign-in
-(`GET /auth/google/login`). Only `klaus@klaushofrichter.net` (configured
-via the `ALLOWED_EMAILS` env var) can complete it — anyone else is sent
-back to `/` with an error toast. Once logged in, the button becomes
+(`GET /auth/google/login`). Only the addresses in the `ALLOWED_EMAILS` env
+var can complete it — a comma-separated list, matched exactly, and accepted
+only when Google reports the address as verified. Anyone else is sent back to
+`/` with an error toast that does not name who *is* allowed. In production the
+list comes from the `www-oauth` Secret in the `www-klaushofrichter` namespace
+(loaded through `envFrom`), not from this repo; changing it takes effect on the
+next revision, i.e. the next deploy or a pod restart. Once logged in, the button becomes
 "Logout" (`GET /auth/logout`), and the auth-gated cards become visible —
 dashboards, operational consoles, and a few personal apps, each marked
 `requiresAuth: true` in `src/links.ts`. Logged-out visitors never
