@@ -1,5 +1,7 @@
 import jwt from 'jsonwebtoken';
 
+export const SESSION_COOKIE = 'session';
+
 export interface SessionPayload {
   email: string;
 }

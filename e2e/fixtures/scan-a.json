@@ -1,0 +1,55 @@
+[
+  {
+    "ip": "192.168.1.1", "mac": "04:42:1a:14:e8:00", "vendor": "ASUSTek COMPUTER INC.", "privateMac": false,
+    "name": "RT-AX86U-14E8", "nameSource": "dns",
+    "web": { "url": "http://192.168.1.1", "title": "ASUS Wireless Router RT-AX86U" },
+    "services": [],
+    "ports": [
+      { "port": 53, "service": "DNS", "web": null },
+      { "port": 80, "service": "Web", "web": { "url": "http://192.168.1.1", "title": "ASUS Wireless Router RT-AX86U" } }
+    ],
+    "rttMs": 2
+  },
+  {
+    "ip": "192.168.1.9", "mac": "b8:27:eb:11:22:33", "vendor": "Raspberry Pi Foundation", "privateMac": false,
+    "name": "Lab <b>bench</b>", "nameSource": "mdns", "web": null,
+    "services": ["SSH"],
+    "ports": [{ "port": 22, "service": "SSH", "web": null }],
+    "rttMs": 4
+  },
+  {
+    "ip": "192.168.1.10", "mac": "00:1b:a9:44:55:66", "vendor": "Brother Industries, Ltd.", "privateMac": false,
+    "name": "Brother HL-L2350DW", "nameSource": "mdns",
+    "web": { "url": "http://192.168.1.10", "title": "Brother HL-L2350DW" },
+    "services": ["Printer"],
+    "ports": [
+      { "port": 80, "service": "Web", "web": { "url": "http://192.168.1.10", "title": "Brother HL-L2350DW" } },
+      { "port": 631, "service": "Printer (IPP)", "web": null },
+      { "port": 9100, "service": "Printer (raw)", "web": null }
+    ],
+    "rttMs": 12
+  },
+  {
+    "ip": "192.168.1.50", "mac": "dc:a6:32:77:88:99", "vendor": "Raspberry Pi Trading Ltd", "privateMac": false,
+    "name": "homeassistant.local", "nameSource": "mdns",
+    "web": { "url": "http://192.168.1.50:8123", "title": "Home Assistant" },
+    "services": ["Home Assistant"],
+    "ports": [
+      { "port": 22, "service": "SSH", "web": null },
+      { "port": 8123, "service": "Home Assistant", "web": { "url": "http://192.168.1.50:8123", "title": "Home Assistant" } }
+    ],
+    "rttMs": 3
+  },
+  {
+    "ip": "192.168.1.103", "mac": "18:66:da:aa:bb:cc", "vendor": "Dell Inc.", "privateMac": false,
+    "name": "klaus-optiplex-9020", "nameSource": "dns", "web": null,
+    "services": [],
+    "ports": [{ "port": 22, "service": "SSH", "web": null }],
+    "rttMs": null
+  },
+  {
+    "ip": "192.168.1.120", "mac": "6a:1f:22:33:44:55", "vendor": null, "privateMac": true,
+    "name": null, "nameSource": null, "web": null,
+    "services": [], "ports": [], "rttMs": 35
+  }
+]

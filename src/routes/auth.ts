@@ -1,11 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { OAuth2Client } from 'google-auth-library';
 import rateLimit from 'express-rate-limit';
-import { signSession } from '../session';
+import { SESSION_COOKIE, signSession } from '../session';
+import { getAllowedEmails } from '../allowedEmails';
 
 export const authRouter = Router();
 
-const SESSION_COOKIE = 'session';
 const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const GOOGLE_AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth';
 
@@ -15,13 +15,6 @@ const authCallbackRateLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
-
-function getAllowedEmails(): string[] {
-  return (process.env.ALLOWED_EMAILS ?? '')
-    .split(',')
-    .map((email) => email.trim())
-    .filter((email) => email.length > 0);
-}
 
 authRouter.get('/auth/google/login', (_req: Request, res: Response) => {
   const params = new URLSearchParams({

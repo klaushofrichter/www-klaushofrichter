@@ -2910,6 +2910,19 @@ Expected: `writable`. If it prints `Permission denied`, the local-path directory
 
 ---
 
+## Prerequisite for the scanner plan
+
+Before a real scanner can be pointed at this website, `isScanState` in
+`src/survey/scannerClient.ts` must also validate each element of
+`result.devices` (at minimum: `ip` and `mac` present and strings). Today it
+checks only that `devices` is an array, so a device object missing `mac` is
+persisted by Save and then throws in `compareToSaved` on every later request —
+`GET /api/survey` and `/dashboard/ip-survey` return 500 permanently, and
+recovery means deleting `latest.json` from the PVC by hand. Unreachable while
+the only producer is the fixture-driven fake scanner and production has no
+`SCANNER_URL`. `readSavedSurvey` casts the on-disk file with no validation
+either, which fails the same way if `latest.json` is ever corrupted.
+
 ## Next plan
 
 `2026-09-XX-ip-survey-scanner.md` (written after this one ships): the privileged scanner in `scanner/` implementing the contract in `src/survey/types.ts` — `arp-scan` discovery, mDNS/SSDP/reverse-DNS names, port and web probes, `/health` — plus its image, the `www-scanner` Deployment, token Secret, runner Role change, the two-image deploy, and the first real scan.

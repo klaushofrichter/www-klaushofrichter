@@ -6,8 +6,18 @@ import { imagesRouter } from './routes/images';
 import { indexRouter } from './routes/index';
 import { authRouter } from './routes/auth';
 import { publicRouter } from './routes/public';
+import { createDashboardRouter } from './routes/dashboard';
+import { createSurveyRouter, SurveyDeps } from './routes/survey';
+import { createScannerClient } from './survey/scannerClient';
 
-export function createApp(): Express {
+export interface AppOptions {
+  // Injected by tests; production builds the real client from SCANNER_URL and
+  // SCANNER_TOKEN.
+  surveyDeps?: SurveyDeps;
+}
+
+export function createApp(options: AppOptions = {}): Express {
+  const surveyDeps = options.surveyDeps ?? { scanner: createScannerClient() };
   const app = express();
   app.use(cookieParser());
   app.use(healthRouter);
@@ -15,6 +25,8 @@ export function createApp(): Express {
   app.use(authRouter);
   app.use('/assets', express.static(path.join(__dirname, '..', 'assets')));
   app.use(publicRouter);
+  app.use(createSurveyRouter(surveyDeps));
+  app.use(createDashboardRouter(surveyDeps));
   app.use(indexRouter);
   return app;
 }

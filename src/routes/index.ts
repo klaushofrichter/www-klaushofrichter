@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import { renderPage } from '../views/page';
 import { refreshAllImages } from '../refreshImages';
-import { verifySession } from '../session';
+import { currentUser } from '../requireAuth';
 
 export const indexRouter = Router();
 
@@ -17,9 +17,7 @@ const indexRateLimit = rateLimit({
 });
 
 indexRouter.get('/', indexRateLimit, (req: Request, res: Response) => {
-  const token = req.cookies?.session;
-  const session = typeof token === 'string' ? verifySession(token) : null;
-  res.status(200).type('html').send(renderPage(session !== null));
+  res.status(200).type('html').send(renderPage(currentUser(req) !== null));
 });
 
 indexRouter.post('/refresh', async (_req: Request, res: Response) => {
