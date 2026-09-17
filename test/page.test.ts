@@ -85,6 +85,20 @@ describe('renderPage auth-gated cards and login button', () => {
     expect(html).toContain('id="auth-button" href="/auth/logout">Logout</a>');
     expect(html).not.toContain('href="/auth/google/login"');
   });
+
+  it('omits the Dashboard button entirely when logged out', () => {
+    const html = renderPage(false);
+
+    expect(html).not.toContain('dashboard-button');
+    expect(html).not.toContain('href="/dashboard"');
+  });
+
+  it('shows a Dashboard button left of Logout when logged in', () => {
+    const html = renderPage(true);
+
+    expect(html).toContain('<a id="dashboard-button" href="/dashboard">Dashboard</a>');
+    expect(html.indexOf('id="dashboard-button"')).toBeLessThan(html.indexOf('id="auth-button"'));
+  });
 });
 
 describe('renderPage version label', () => {

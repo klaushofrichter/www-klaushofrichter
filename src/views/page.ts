@@ -1,5 +1,5 @@
-import { appVersion } from '../version';
 import { escapeHtml } from './escapeHtml';
+import { BASE_CSS, FAVICON_LINKS, HEADER_CSS, renderHeaderActions } from './layout';
 import { links, Link } from '../links';
 import { hasImage } from '../refreshImages';
 import { hasStaticCard, staticCardUrl } from '../staticCards';
@@ -9,7 +9,6 @@ const ABOUT_BODY =
   'Engineer, tinkerer, and occasional puppy photographer. This page collects the places you can find me online — from professional profiles to side projects and creative work.';
 const FOOTER_TEXT = 'Contact: klaus@klaushofrichter.net';
 const SITE_URL = 'https://www.klaushofrichter.net';
-const REPO_URL = 'https://github.com/klaushofrichter/www-klaushofrichter';
 const OG_IMAGE_ALT = 'Klaus Hofrichter — engineer, tinkerer, and occasional puppy photographer.';
 
 function displayUrl(url: string): string {
@@ -42,20 +41,24 @@ function renderCard(link: Link): string {
         </div>`;
 }
 
-const PAGE_CSS = `
-  * { box-sizing: border-box; }
-  html { scrollbar-width: thin; scrollbar-color: #4b4a78 #16142b; }
-  ::-webkit-scrollbar { width: 10px; }
-  ::-webkit-scrollbar-track { background: #16142b; }
-  ::-webkit-scrollbar-thumb { background: #4b4a78; border-radius: 6px; }
-  ::-webkit-scrollbar-thumb:hover { background: #5f5d99; }
-  body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: linear-gradient(160deg, #0f0c29, #1b1740, #24243e);
-    color: #eef0fb;
-    min-height: 100vh;
+// HEADER_CSS styles #auth-button and #dashboard-button together with one
+// selector. A signed-out response must not mention "dashboard-button"
+// anywhere (see renderHeaderActions), so the homepage strips that half of
+// the shared rule out of its stylesheet when there's no button to style.
+function headerCssFor(isAuthenticated: boolean): string {
+  if (isAuthenticated) {
+    return HEADER_CSS;
   }
+  return HEADER_CSS.replace('#auth-button, #dashboard-button {', '#auth-button {').replace(
+    '#auth-button:hover, #dashboard-button:hover {',
+    '#auth-button:hover {'
+  );
+}
+
+function pageCss(isAuthenticated: boolean): string {
+  return `
+  ${BASE_CSS}
+  ${headerCssFor(isAuthenticated)}
   .page { padding: 40px 5%; }
   .about { max-width: 640px; margin: 0 auto 40px; text-align: center; }
   .about-avatar {
@@ -89,36 +92,6 @@ const PAGE_CSS = `
     border-top: 1px solid rgba(255,255,255,0.1);
     text-align: center; font-size: 12px; opacity: 0.6;
   }
-  .header-actions {
-    position: fixed; top: 16px; right: 16px;
-    display: flex; align-items: center; gap: 8px;
-  }
-  #app-version {
-    font-size: 11px; color: #eef0fb; letter-spacing: 0.02em;
-    opacity: 0.25; transition: opacity 0.2s;
-  }
-  .header-actions:hover #app-version { opacity: 0.6; }
-  a#app-version { text-decoration: none; }
-  a#app-version:hover { opacity: 1; text-decoration: underline; }
-  #auth-button {
-    display: inline-flex; align-items: center; justify-content: center;
-    height: 36px; padding: 0 14px; border-radius: 18px;
-    border: 1px solid rgba(255,255,255,0.15);
-    background: rgba(255,255,255,0.06);
-    color: #eef0fb; font-size: 12px; text-decoration: none;
-    opacity: 0.35; transition: opacity 0.2s;
-  }
-  #auth-button:hover { opacity: 1; }
-  #refresh-button {
-    width: 36px; height: 36px; border-radius: 50%;
-    border: 1px solid rgba(255,255,255,0.15);
-    background: rgba(255,255,255,0.06);
-    color: #eef0fb; font-size: 16px; cursor: pointer;
-    opacity: 0.35; transition: opacity 0.2s;
-  }
-  #refresh-button:hover { opacity: 1; }
-  #refresh-button.loading { animation: spin 1s linear infinite; opacity: 1; }
-  @keyframes spin { to { transform: rotate(360deg); } }
   #refresh-message {
     position: fixed; top: 58px; right: 16px;
     font-size: 11px; background: rgba(0,0,0,0.6); padding: 6px 10px; border-radius: 6px;
@@ -126,6 +99,7 @@ const PAGE_CSS = `
   }
   #refresh-message.visible { opacity: 1; }
 `;
+}
 
 const REFRESH_SCRIPT = `
   (function () {
@@ -177,16 +151,6 @@ const AUTH_ERROR_SCRIPT = `
 export function renderPage(isAuthenticated: boolean): string {
   const visibleLinks = links.filter((link) => !link.requiresAuth || isAuthenticated);
   const cards = visibleLinks.map(renderCard).join('\n');
-  // Signed in, the version doubles as a way into the source that built it;
-  // signed out it stays inert text. The id is on both so the deploy's smoke
-  // test - which greps the logged-out page for it - keeps working either way.
-  const version = escapeHtml(appVersion());
-  const versionMarkup = isAuthenticated
-    ? `<a id="app-version" href="${REPO_URL}" target="_blank" rel="noopener noreferrer" title="Deployed build - open the repository">${version}</a>`
-    : `<span id="app-version" title="Deployed build">${version}</span>`;
-  const authButtonMarkup = isAuthenticated
-    ? '<a id="auth-button" href="/auth/logout">Logout</a>'
-    : '<a id="auth-button" href="/auth/google/login">Login</a>';
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -213,17 +177,11 @@ export function renderPage(isAuthenticated: boolean): string {
     <meta name="twitter:description" content="${escapeHtml(ABOUT_BODY)}" />
     <meta name="twitter:image" content="${SITE_URL}/assets/og-image.png" />
     <meta name="twitter:image:alt" content="${escapeHtml(OG_IMAGE_ALT)}" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png" />
-    <style>${PAGE_CSS}</style>
+    ${FAVICON_LINKS}
+    <style>${pageCss(isAuthenticated)}</style>
   </head>
   <body>
-    <div class="header-actions">
-      ${versionMarkup}
-      ${authButtonMarkup}
-      <button id="refresh-button" title="Refresh images" aria-label="Refresh images">⟳</button>
-    </div>
+    ${renderHeaderActions({ isAuthenticated, showRefresh: true })}
     <div id="refresh-message"></div>
     <div class="page">
       <header class="about">
