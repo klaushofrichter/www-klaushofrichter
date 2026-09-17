@@ -6,6 +6,7 @@ import { imagesRouter } from './routes/images';
 import { indexRouter } from './routes/index';
 import { authRouter } from './routes/auth';
 import { publicRouter } from './routes/public';
+import { createDashboardRouter } from './routes/dashboard';
 import { createSurveyRouter, SurveyDeps } from './routes/survey';
 import { createScannerClient } from './survey/scannerClient';
 
@@ -25,6 +26,7 @@ export function createApp(options: AppOptions = {}): Express {
   app.use('/assets', express.static(path.join(__dirname, '..', 'assets')));
   app.use(publicRouter);
   app.use(createSurveyRouter(surveyDeps));
+  app.use(createDashboardRouter(surveyDeps));
   app.use(indexRouter);
   return app;
 }
