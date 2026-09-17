@@ -5,6 +5,8 @@
   "type": "commonjs",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "build:scanner": "tsc -p tsconfig.scanner.json",
+    "scanner": "tsx scanner/src/main.ts",
     "start": "node dist/server.js",
     "dev": "tsx --env-file=.env src/server.ts",
     "test": "vitest run",
