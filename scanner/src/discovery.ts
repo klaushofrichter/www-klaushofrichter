@@ -6,6 +6,12 @@ import { ScannerConfig } from './config';
 
 const execFileAsync = promisify(execFile);
 
+// Shape-only would keep 999.999.999.999. This parser is the boundary between
+// a privileged subprocess's stdout and data that gets persisted and
+// rendered, so it holds to the same "valid", not "plausibly shaped",
+// standard as the CIDR check in config.ts.
+const IPV4 = /^((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d)$/;
+
 // arp-scan --plain prints "ip<TAB>mac<TAB>vendor" and nothing else. Every
 // device on the segment must answer ARP to be usable on it, so this finds
 // hosts that drop pings and have no open ports.
@@ -20,7 +26,7 @@ export function parseArpScan(stdout: string): Array<{ ip: string; mac: string; v
     const ip = columns[0].trim();
     const mac = columns[1].trim().toLowerCase();
     const vendor = columns[2].trim();
-    if (!/^(\d{1,3}\.){3}\d{1,3}$/.test(ip) || !/^([0-9a-f]{2}:){5}[0-9a-f]{2}$/.test(mac)) {
+    if (!IPV4.test(ip) || !/^([0-9a-f]{2}:){5}[0-9a-f]{2}$/.test(mac)) {
       continue;
     }
     // A host can answer twice; the second reply carries nothing new.

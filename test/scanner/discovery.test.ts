@@ -32,6 +32,12 @@ describe('parseArpScan', () => {
       { ip: '192.168.1.2', mac: 'aa:bb:cc:dd:ee:ff', vendor: 'Acme' },
     ]);
   });
+
+  it('drops a row whose IP has an out-of-range octet, not just the wrong shape', () => {
+    expect(parseArpScan('999.999.999.999\taa:bb:cc:dd:ee:ff\tAcme\n192.168.1.2\t11:22:33:44:55:66\tAcme\n')).toEqual([
+      { ip: '192.168.1.2', mac: '11:22:33:44:55:66', vendor: 'Acme' },
+    ]);
+  });
 });
 
 describe('isPrivateMac', () => {
@@ -72,7 +78,7 @@ describe('discover', () => {
   it('returns one device per reply, marking private MACs', async () => {
     const run = vi.fn().mockResolvedValue(output);
 
-    const devices = await discover(config, run);
+    const devices = await discover(config, run, () => ({}) as ReturnType<typeof import('node:os').networkInterfaces>);
 
     expect(run).toHaveBeenCalledWith(config);
     expect(devices).toHaveLength(4);
