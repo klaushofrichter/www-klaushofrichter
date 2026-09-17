@@ -132,6 +132,11 @@ interface MdnsResponseLike {
 }
 type MdnsFound = Map<string, { name: string | null; services: string[] }>;
 
+// A flooding or spoofing device must not be able to grow either collector's
+// map without limit for the whole collection window; a home LAN that
+// legitimately exceeds this has other problems.
+export const MAX_RESPONDERS = 512;
+
 // Factored out of the multicast listener so the aggregation logic — the part
 // the controller ruling cares about — can be driven directly in tests
 // without touching a real socket. `address` is the responder's own address
@@ -153,55 +158,147 @@ export function applyMdnsResponse(found: MdnsFound, response: MdnsResponseLike, 
   found.set(address, entry);
 }
 
-export function collectMdns(durationMs = 4000): () => Promise<MdnsFound> {
+// `createMdns` defaults to the real `multicast-dns` factory and is swapped
+// for a fake EventEmitter in tests, so the timer/error races below can be
+// driven without a real multicast socket.
+export function collectMdns(
+  durationMs = 4000,
+  createMdns: () => ReturnType<typeof makeMdns> = makeMdns,
+): () => Promise<MdnsFound> {
   return () =>
     new Promise((resolve) => {
       const found: MdnsFound = new Map();
-      const mdns = makeMdns();
+      const mdns = createMdns();
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      let settled = false;
+      // Idempotent: the error path and the timeout can both try to reach
+      // here (in principle — clearing the timer below is what normally
+      // stops that — but a socket has no such guarantee), and destroying an
+      // already-destroyed multicast socket must not throw a second time.
+      const finish = () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        if (timer) {
+          clearTimeout(timer);
+        }
+        try {
+          mdns.destroy();
+        } catch {
+          /* already destroyed */
+        }
+        resolve(found);
+      };
       mdns.on('response', (response, rinfo) => {
+        // Cap by responder address: an address already being tracked can
+        // still be updated (a second response filling in more of the same
+        // device), but a new address is dropped once the cap is reached.
+        if (!found.has(rinfo.address) && found.size >= MAX_RESPONDERS) {
+          return;
+        }
         applyMdnsResponse(found, response, rinfo.address);
       });
+      // No multicast-capable interface, EACCES, etc.: an EventEmitter with
+      // no 'error' listener throws, which would otherwise take the process
+      // down from inside a stage whose whole point is to not do that.
+      mdns.on('error', finish);
       mdns.query({ questions: [{ name: '_services._dns-sd._udp.local', type: 'PTR' }] });
-      setTimeout(() => {
-        mdns.destroy();
-        resolve(found);
-      }, durationMs);
+      timer = setTimeout(finish, durationMs);
     });
 }
 
+// `createSocket` defaults to the real dgram factory and is swapped for a
+// fake EventEmitter in tests, mirroring collectMdns's injection.
 export function collectSsdp(
   durationMs = 4000,
   fetchDescription = fetchUpnpDescription,
+  createSocket: () => dgram.Socket = () => dgram.createSocket({ type: 'udp4', reuseAddr: true }),
 ): () => Promise<Map<string, { name: string | null; model: string | null }>> {
   return () =>
     new Promise((resolve) => {
       const locations = new Map<string, string>();
-      const socket = dgram.createSocket({ type: 'udp4', reuseAddr: true });
+      const socket = createSocket();
       const search = Buffer.from(
         'M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nMAN: "ssdp:discover"\r\nMX: 2\r\nST: ssdp:all\r\n\r\n',
       );
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      let settled = false;
+      // Idempotent for the same reason as collectMdns's finish: the error
+      // path used to close the socket and resolve without clearing the
+      // pending timer, so the timer would later close an already-closed
+      // dgram socket — which throws synchronously inside a timer callback,
+      // outside any promise chain, and takes the process down.
+      const finish = (value: Map<string, { name: string | null; model: string | null }>) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        if (timer) {
+          clearTimeout(timer);
+        }
+        try {
+          socket.close();
+        } catch {
+          /* already closed */
+        }
+        resolve(value);
+      };
       socket.on('message', (message, remote) => {
         const location = /^location:\s*(\S+)/im.exec(message.toString())?.[1];
         if (location && !locations.has(remote.address)) {
+          if (locations.size >= MAX_RESPONDERS) {
+            return;
+          }
           locations.set(remote.address, location);
         }
       });
-      socket.on('error', () => {
-        socket.close();
-        resolve(new Map());
-      });
+      socket.on('error', () => finish(new Map()));
       socket.bind(() => socket.send(search, 1900, '239.255.255.250'));
-      setTimeout(async () => {
-        socket.close();
+      timer = setTimeout(async () => {
         const found = new Map<string, { name: string | null; model: string | null }>();
         await Promise.all(
           Array.from(locations.entries()).map(async ([ip, location]) => {
             found.set(ip, await fetchDescription(location));
           }),
         );
-        resolve(found);
+        finish(found);
       }, durationMs);
     });
+}
+
+// The device on the other end of `location` is untrusted, so the body is
+// read with a byte budget rather than buffered whole and sliced afterward —
+// a device that keeps streaming past 64KB must not make this hold the
+// connection (or the memory) open any longer than that.
+const MAX_UPNP_BYTES = 64 * 1024;
+
+export async function readUpnpBody(response: { body: ReadableStream<Uint8Array> | null; text(): Promise<string> }): Promise<string> {
+  if (!response.body) {
+    return (await response.text()).slice(0, MAX_UPNP_BYTES);
+  }
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (total < MAX_UPNP_BYTES) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      if (value) {
+        chunks.push(value);
+        total += value.byteLength;
+      }
+    }
+  } finally {
+    // Whether the body ended on its own or the budget was hit, the reader
+    // (and the underlying connection) must not be left dangling.
+    await reader.cancel().catch(() => {});
+  }
+  return Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)))
+    .subarray(0, MAX_UPNP_BYTES)
+    .toString('utf-8');
 }
 
 async function fetchUpnpDescription(location: string): Promise<{ name: string | null; model: string | null }> {
@@ -210,7 +307,7 @@ async function fetchUpnpDescription(location: string): Promise<{ name: string | 
     if (!response.ok) {
       return { name: null, model: null };
     }
-    return parseUpnpDescription((await response.text()).slice(0, 64 * 1024));
+    return parseUpnpDescription(await readUpnpBody(response));
   } catch {
     return { name: null, model: null };
   }
