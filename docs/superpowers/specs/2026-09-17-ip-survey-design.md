@@ -48,16 +48,23 @@ table, persists the result, and highlights what changed since the last save.
   - `GET /dashboard` — feature tiles; IP Survey is the first.
   - `GET /dashboard/ip-survey` — the survey page.
   - Both carry navigation back to the cards (see section 3).
-- **`requireAuth` middleware** on every `/dashboard*` page and `/api/survey/*`
+- **`requireAuth` middleware** on every `/dashboard*` page and `/api/survey*`
   route. Today authentication only decides what `renderPage` includes; these
   routes must reject a missing or invalid session server-side. Pages redirect
-  to `/`; API routes return `401`.
+  to `/`; API routes return `401`. A session also counts only while its email
+  is still in `ALLOWED_EMAILS` — a signed cookie is otherwise valid for 7 days
+  after the address is removed. The homepage uses the same check, so the
+  Dashboard button and the gated cards appear under exactly the conditions the
+  routes accept.
 - **API**
-  - `POST /api/survey/scan` — ask the scanner to start a scan.
-  - `GET /api/survey/scan` — current scan state: idle, running (with stage),
-    or finished (with result).
-  - `GET /api/survey/saved` — the saved survey, or `404` if none.
-  - `POST /api/survey/save` — persist the last finished scan (see section 3).
+  - `GET /api/survey` — one status object for the page to poll: scan progress
+    (idle, running with stage, finished, failed, or scanner unavailable) plus
+    the table view (rows already compared against the saved survey, counts,
+    and whether the shown result is unsaved).
+  - `POST /api/survey/scan` — ask the scanner to start a scan; `202` with the
+    status, `409` if one is running, `503` if the scanner is unreachable.
+  - `POST /api/survey/save` — persist the scanner's finished result (see
+    section 3); `409` if there is none.
 - **Storage**: PVC `www-data` mounted at `/app/data/surveys`; the saved
   survey is `latest.json`. Mounted there rather than at `/app/data` so it
   does not shadow the image cache directory the Dockerfile creates.
@@ -86,9 +93,12 @@ table, persists the result, and highlights what changed since the last save.
 2. Website → scanner at `SCANNER_URL` (token checked).
 3. Scanner runs the stages in section 2; the website relays progress and the
    result.
-4. Browser renders the table and compares against the saved survey by **MAC
-   address** (DHCP can move a device to a new IP).
-5. **Save** → website writes the scan result it holds to the PVC.
+4. Website compares the finished scan against the saved survey by **MAC
+   address** (DHCP can move a device to a new IP) and returns rows marked
+   *new*, *unchanged* or *gone*. Comparison runs server-side so it is unit
+   tested; the browser only renders and sorts.
+5. **Save** → website reads the scanner's finished result and writes it to
+   the PVC.
 
 `SCANNER_URL` is `http://10.42.0.1:9450`, addressed directly rather than
 through a Service name, because the scanner does not listen on the address a
@@ -175,9 +185,13 @@ for web ports, link and title; the advertised services; response time.
 
 ### Save and compare
 
-- **Save persists the result the server holds, never the request body.** The
-  website keeps the last finished scan; `POST /api/survey/save` writes exactly
-  that, so a crafted request cannot plant devices in the saved survey.
+- **Save persists the scanner's result, never the request body.** The scanner
+  holds its last finished scan until the next one starts; `POST
+  /api/survey/save` reads that and writes it, so a crafted request cannot plant
+  devices in the saved survey. The website keeps no copy of its own, so a
+  website restart loses nothing.
+- **With no saved survey there is nothing to compare against**, so no device
+  is marked *new*.
 - **Atomic write**: write to a temporary file in the same directory, then
   rename over `latest.json`.
 - **File contents**: `scannedAt`, `savedAt`, `cidr`, `version` (release),
