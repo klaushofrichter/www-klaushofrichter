@@ -1,5 +1,21 @@
 import { ScanState } from './types';
 
+// The scanner is a separate service the website does not control, so its
+// JSON is validated at this one boundary rather than trusted by every
+// downstream consumer. Anything that doesn't match collapses to
+// ScannerUnavailableError, same as an unreachable or misconfigured scanner.
+function isScanState(value: unknown): value is ScanState {
+  if (typeof value !== 'object' || value === null) return false;
+  const state = (value as { state?: unknown }).state;
+  if (state === 'idle' || state === 'running' || state === 'failed') return true;
+  if (state === 'finished') {
+    const result = (value as { result?: unknown }).result;
+    if (typeof result !== 'object' || result === null) return false;
+    return Array.isArray((result as { devices?: unknown }).devices);
+  }
+  return false;
+}
+
 export class ScannerUnavailableError extends Error {
   constructor(message: string) {
     super(message);
@@ -55,11 +71,16 @@ export function createScannerClient(options: ScannerClientOptions = {}): Scanner
     if (!response.ok) {
       throw new ScannerUnavailableError(`Scanner answered HTTP ${response.status}`);
     }
+    let body: unknown;
     try {
-      return (await response.json()) as ScanState;
+      body = await response.json();
     } catch {
       throw new ScannerUnavailableError('Scanner returned an unreadable response');
     }
+    if (!isScanState(body)) {
+      throw new ScannerUnavailableError('Scanner returned a malformed response');
+    }
+    return body;
   }
 
   return {

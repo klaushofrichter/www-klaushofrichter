@@ -34,3 +34,11 @@ export function requireAuthApi(req: Request, res: Response, next: NextFunction):
   }
   next();
 }
+
+// Signed-in pages and the survey API carry a full inventory of the home
+// network; without this, it can sit in the browser's disk cache and stay
+// reachable with the back button after logout.
+export function noStore(_req: Request, res: Response, next: NextFunction): void {
+  res.set('Cache-Control', 'no-store');
+  next();
+}

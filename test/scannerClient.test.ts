@@ -71,4 +71,38 @@ describe('createScannerClient', () => {
 
     await expect(client.getScan()).rejects.toBeInstanceOf(ScannerUnavailableError);
   });
+
+  it('maps a finished state with no result to ScannerUnavailableError', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(200, { state: 'finished' }));
+    const client = createScannerClient({ baseUrl: 'http://scanner.test', token: 't', fetchImpl });
+
+    await expect(client.getScan()).rejects.toBeInstanceOf(ScannerUnavailableError);
+  });
+
+  it('maps a finished state whose result.devices is not an array to ScannerUnavailableError', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse(200, { state: 'finished', result: { scannedAt: 'x', cidr: '192.168.1.0/24', devices: 'nope' } }),
+    );
+    const client = createScannerClient({ baseUrl: 'http://scanner.test', token: 't', fetchImpl });
+
+    await expect(client.getScan()).rejects.toBeInstanceOf(ScannerUnavailableError);
+  });
+
+  it('maps an unknown state string to ScannerUnavailableError', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(200, { state: 'bogus' }));
+    const client = createScannerClient({ baseUrl: 'http://scanner.test', token: 't', fetchImpl });
+
+    await expect(client.getScan()).rejects.toBeInstanceOf(ScannerUnavailableError);
+  });
+
+  it('still passes through a valid finished state unchanged', async () => {
+    const finished: ScanState = {
+      state: 'finished',
+      result: { scannedAt: '2026-09-17T12:00:00.000Z', cidr: '192.168.1.0/24', devices: [] },
+    };
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(200, finished));
+    const client = createScannerClient({ baseUrl: 'http://scanner.test', token: 't', fetchImpl });
+
+    await expect(client.getScan()).resolves.toEqual(finished);
+  });
 });

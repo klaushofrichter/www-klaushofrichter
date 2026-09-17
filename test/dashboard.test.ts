@@ -38,4 +38,10 @@ describe('GET /dashboard', () => {
 
     expect(response.text).toContain('<meta name="robots" content="noindex" />');
   });
+
+  it('is not cacheable, so it cannot linger in the browser after logout', async () => {
+    const response = await request(createApp()).get('/dashboard').set('Cookie', cookie());
+
+    expect(response.headers['cache-control']).toBe('no-store');
+  });
 });

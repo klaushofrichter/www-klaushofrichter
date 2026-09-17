@@ -1,11 +1,12 @@
 import { Request, Response, Router } from 'express';
-import { requireAuthPage } from '../requireAuth';
+import { noStore, requireAuthPage } from '../requireAuth';
 import { renderDashboardPage } from '../views/dashboard';
 import { renderIpSurveyPage } from '../views/ipSurvey';
 import { loadSurveyStatus, SurveyDeps } from './survey';
 
 export function createDashboardRouter(deps: SurveyDeps): Router {
   const router = Router();
+  router.use(noStore);
 
   router.get('/dashboard', requireAuthPage, (_req: Request, res: Response) => {
     res.status(200).type('html').send(renderDashboardPage());

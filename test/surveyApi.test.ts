@@ -78,6 +78,12 @@ describe('survey API', () => {
     expect(response.body.view.source).toBe('none');
   });
 
+  it('is not cacheable, so a network inventory cannot linger in the browser', async () => {
+    const response = await request(makeApp(fakeScanner({ state: 'idle' }))).get('/api/survey').set('Cookie', cookie());
+
+    expect(response.headers['cache-control']).toBe('no-store');
+  });
+
   it('still shows the saved survey when the scanner is unavailable', async () => {
     await writeSavedSurvey({ ...finished.result, savedAt: '2026-09-17T12:00:00.000Z', version: 'dev' }, dir);
     const scanner = fakeScanner({ state: 'idle' });

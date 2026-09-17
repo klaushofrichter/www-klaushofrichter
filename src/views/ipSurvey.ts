@@ -257,7 +257,16 @@ const IP_SURVEY_SCRIPT = `
         request('GET', '/api/survey').then(function (r) {
           if (r.status !== 200) throw new Error('HTTP ' + r.status);
           showMessage('');
-          apply(r.body);
+          // apply() assigns state before it renders, so a render failure
+          // here must not fall through to the catch below: that would read
+          // fields off the now-corrupted state and double-fault, leaving the
+          // page blank with no retry scheduled.
+          try {
+            apply(r.body);
+          } catch (applyErr) {
+            showMessage('Lost track of the scan (' + applyErr.message + '), retrying.');
+            schedulePoll();
+          }
         }).catch(function (err) {
           if (err.signedOut) return;
           showMessage('Lost track of the scan (' + err.message + '), retrying.');

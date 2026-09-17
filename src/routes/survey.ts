@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response, Router } from 'express';
 import rateLimit from 'express-rate-limit';
-import { requireAuthApi } from '../requireAuth';
+import { noStore, requireAuthApi } from '../requireAuth';
 import { ScannerBusyError, ScannerClient, ScannerUnavailableError } from '../survey/scannerClient';
 import { readSavedSurvey, writeSavedSurvey } from '../survey/store';
 import { ScanProgress, ScanState, SurveyStatus } from '../survey/types';
@@ -55,7 +55,7 @@ export function createSurveyRouter(deps: SurveyDeps): Router {
   // Auth first, so unauthenticated requests are rejected before they count
   // against anyone's budget. POSTs need no CSRF token here: the session cookie
   // is SameSite=Lax, so a cross-site POST arrives without it and gets a 401.
-  router.use('/api/survey', requireAuthApi, surveyRateLimit);
+  router.use('/api/survey', noStore, requireAuthApi, surveyRateLimit);
 
   router.get('/api/survey', async (_req: Request, res: Response) => {
     res.status(200).json(await loadSurveyStatus(deps));
