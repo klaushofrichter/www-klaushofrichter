@@ -20,6 +20,10 @@ this file is where notes are written *before* a release.
 
 ### Added
 
+- A signed-in **Dashboard** (button left of Logout) with an **IP Survey**
+  page: sortable device table, per-device Details dialog, Save to persistent
+  storage, and new/gone comparison against the saved survey. Works against
+  the scanner API; the scanner itself ships separately.
 - `GET /public` — a listing of the files committed under `public/`, each one a
   download link, plus `GET /public/<filename>` to fetch one. The folder is
   copied into the runtime image, so its contents change only on a deploy.

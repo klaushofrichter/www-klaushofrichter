@@ -49,27 +49,39 @@ jobs:
 
       - run: npm run build
 
-      - name: Start the server and run the smoke test
+      - name: Start the server and fake scanner, run the e2e suite
         env:
-          # Dummy values: the suite only exercises the public, logged-out
-          # surface, but the server refuses to sign a session without a secret.
+          # Shared by the server and the signed-in specs, which sign their own
+          # session cookie with it (e2e/session.ts). Not a real secret.
           COOKIE_SECRET: e2e-cookie-secret-not-used-for-anything-real
           GOOGLE_CLIENT_ID: e2e
           GOOGLE_CLIENT_SECRET: e2e
           GOOGLE_REDIRECT_URI: http://localhost:8080/auth/google/callback
           ALLOWED_EMAILS: klaus@klaushofrichter.net
+          # The survey specs run against e2e/fakeScanner.ts. CI never scans a
+          # real network.
+          SCANNER_URL: http://127.0.0.1:9451
+          SCANNER_TOKEN: e2e-scanner-token
+          FAKE_SCANNER_PORT: '9451'
+          SURVEY_DIR: ${{ runner.temp }}/surveys
         run: |
           set -euo pipefail
+          npx tsx e2e/fakeScanner.ts &
+          echo $! > /tmp/fake-scanner.pid
           npm start &
           echo $! > /tmp/server.pid
           for i in $(seq 1 20); do
-            curl -sf http://localhost:8080/health >/dev/null && break
-            echo "waiting for server (${i}/20)"; sleep 2
+            if curl -sf http://localhost:8080/health >/dev/null && curl -sf http://127.0.0.1:9451/health >/dev/null; then
+              break
+            fi
+            echo "waiting for server and fake scanner (${i}/20)"; sleep 2
           done
           curl -sf http://localhost:8080/health >/dev/null \
             || { echo "::error::server did not come up"; exit 1; }
+          curl -sf http://127.0.0.1:9451/health >/dev/null \
+            || { echo "::error::fake scanner did not come up"; exit 1; }
           npm run test:e2e
-          kill "$(cat /tmp/server.pid)" || true
+          kill "$(cat /tmp/server.pid)" "$(cat /tmp/fake-scanner.pid)" || true
 
   codeql:
     runs-on: ubuntu-latest

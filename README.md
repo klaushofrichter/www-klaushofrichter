@@ -45,6 +45,10 @@ single source of truth for all of them.
   `assets/favicon-32x32.png`, `assets/apple-touch-icon.png`).
 - `GET /public` — a listing of the files committed under `public/`, each a
   download link; `GET /public/<filename>` serves one. See "Public files".
+- `GET /dashboard`, `GET /dashboard/ip-survey` — signed-in pages (see
+  "Dashboard"). Signed-out requests are redirected to `/`.
+- `GET /api/survey`, `POST /api/survey/scan`, `POST /api/survey/save` — the IP
+  Survey API. Signed-out requests get `401`.
 
 ### Social previews
 
@@ -73,6 +77,34 @@ URL's bytes only change when a new image is deployed.
 
 Nothing on the homepage links to `/public` — it is a place to park a file you
 want to hand someone a URL for, not a section of the site.
+
+## Dashboard
+
+Signed in, a **Dashboard** button appears left of Logout. It is omitted from
+the markup for everyone else, and every `/dashboard*` page and `/api/survey*`
+route is guarded server-side by `src/requireAuth.ts` — which also re-checks
+`ALLOWED_EMAILS` on each request, so removing an address takes effect
+immediately rather than when its cookie expires.
+
+### IP Survey
+
+`/dashboard/ip-survey` lists every device on the home LAN: IP, MAC,
+manufacturer, name (with where it came from), web page title, and a Details
+dialog for open ports, services and response time. **Scan** asks the scanner
+for a fresh survey; **Save** stores the scanner's finished result as
+`latest.json` under `SURVEY_DIR` (the `www-data` PVC in production, mounted at
+`/app/data/surveys`). A new scan is compared with the saved one by MAC
+address, marking devices *new* or *gone*.
+
+The scan itself runs in a separate privileged scanner service (see
+`docs/superpowers/specs/2026-09-17-ip-survey-design.md`). The website reaches
+it at `SCANNER_URL` with the bearer token in `SCANNER_TOKEN`; if either is
+unset or the scanner is down, the page says "Scanner unavailable" and keeps
+showing the saved survey.
+
+For local work, `npm run fake-scanner` serves fixture data under the same
+contract (`e2e/fakeScanner.ts`); set `SCANNER_URL`/`SCANNER_TOKEN` in `.env`
+as in `.env.example`.
 
 ## Development
 
@@ -155,6 +187,25 @@ job of `production-checks.yml`, which runs on pull requests to **both** `main`
 and `production` — on GitHub's runners against a locally started server, not in
 the deploy, where installing a browser exceeds the in-cluster runner's memory
 limit and gets it OOM-killed.
+
+`e2e/dashboard.spec.ts` covers the Dashboard signed out and signed in, and the
+IP Survey against `e2e/fakeScanner.ts`: scan, numeric IP sort, the Details
+dialog, Save, and the new/gone comparison. Signed-in specs sign their own
+session cookie (`e2e/session.ts`) with the server's `COOKIE_SECRET`, so both
+must be set to the same value. To run the whole suite locally:
+
+    mkdir -p "$TMPDIR/e2e-surveys" && rm -rf "$TMPDIR/e2e-surveys"/*
+    export COOKIE_SECRET=e2e-local-secret GOOGLE_CLIENT_ID=e2e GOOGLE_CLIENT_SECRET=e2e \
+      GOOGLE_REDIRECT_URI=http://localhost:8090/auth/google/callback \
+      ALLOWED_EMAILS=klaus@klaushofrichter.net \
+      SCANNER_URL=http://127.0.0.1:9451 SCANNER_TOKEN=e2e-scanner-token \
+      FAKE_SCANNER_PORT=9451 SURVEY_DIR="$TMPDIR/e2e-surveys" PORT=8090
+    npm run build
+    npx tsx e2e/fakeScanner.ts & npm start &
+    BASE_URL=http://localhost:8090 npx playwright test
+
+(`npm start`, not `npm run dev`: `dev` loads `.env` and would override those
+values.)
 
 The deploy's own smoke test is `curl`-based: after the rollout it waits for
 `/health` to return 200, asserts the version it reports is the one that run
