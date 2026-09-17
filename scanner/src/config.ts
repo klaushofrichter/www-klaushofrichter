@@ -17,8 +17,8 @@ const IFACE = /^[A-Za-z0-9._-]{1,32}$/;
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ScannerConfig {
   const token = env.SCANNER_TOKEN ?? '';
-  if (token.length === 0) {
-    throw new Error('SCANNER_TOKEN must be set');
+  if (token.length < 8) {
+    throw new Error('SCANNER_TOKEN must be set to at least 8 characters');
   }
   const cidr = env.SCAN_CIDR ?? '';
   if (!CIDR.test(cidr)) {
