@@ -1,3 +1,5 @@
+import { IPV4 } from './ipv4';
+
 // Everything the scanner is allowed to do is fixed here at startup. In
 // particular the scan range: no request carries a target, so a stolen website
 // session cannot turn this into a general-purpose scanner.
@@ -10,11 +12,12 @@ export interface ScannerConfig {
   version: string;
 }
 
-// Shape-only would accept 999.999.999.999/99, which becomes an argument to
-// the arp-scan process this config feeds (Task 3). No shell is involved, so
-// this is not an injection risk either way, but "refuses to start on bad
-// input" is a stated constraint and this is the value reaching that subprocess.
-const CIDR = /^((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d)\/([0-9]|[12]\d|3[0-2])$/;
+// Built on the shared IPV4 check: shape-only would accept 999.999.999.999/99,
+// which becomes an argument to the arp-scan process this config feeds
+// (Task 3). No shell is involved, so this is not an injection risk either
+// way, but "refuses to start on bad input" is a stated constraint and this
+// is the value reaching that subprocess.
+const CIDR = new RegExp(`^${IPV4.source.slice(1, -1)}\\/([0-9]|[12]\\d|3[0-2])$`);
 // arp-scan is spawned without a shell, but a strict interface name keeps the
 // value from being interesting if that ever changes.
 const IFACE = /^[A-Za-z0-9._-]{1,32}$/;

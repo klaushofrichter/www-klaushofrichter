@@ -1,8 +1,29 @@
 import { describe, it, expect, vi } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { discover, isPrivateMac, parseArpScan, selfDevice } from '../../scanner/src/discovery';
+import { EventEmitter } from 'node:events';
 import { ScannerConfig } from '../../scanner/src/config';
+
+// runArpScan's own error translation is the only diagnostic the dashboard
+// gets for a scanner with no public URL or log access, so it is covered
+// directly against a mocked execFile rather than by eye. child_process is
+// mocked (not the promisified wrapper) because that's the real boundary:
+// promisify(execFile) rejects with whatever execFile's callback passes it.
+vi.mock('node:child_process', () => ({
+  execFile: vi.fn(),
+}));
+
+import { execFile } from 'node:child_process';
+import { discover, isPrivateMac, parseArpScan, runArpScan, selfDevice } from '../../scanner/src/discovery';
+
+function mockExecFileError(error: Record<string, unknown>) {
+  (execFile as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+    (_cmd: string, _args: string[], _opts: unknown, callback: (err: unknown) => void) => {
+      callback(error);
+      return new EventEmitter();
+    },
+  );
+}
 
 const output = fs.readFileSync(path.join(__dirname, 'fixtures', 'arp-scan-output.txt'), 'utf8');
 
@@ -103,5 +124,31 @@ describe('discover', () => {
     }) as ReturnType<typeof import('node:os').networkInterfaces>);
 
     expect(devices.map((d) => d.ip)).toContain('192.168.1.103');
+  });
+});
+
+describe('runArpScan', () => {
+  it('reports a missing binary by name, not a raw ENOENT', async () => {
+    mockExecFileError({ code: 'ENOENT', message: 'spawn arp-scan ENOENT' });
+
+    await expect(runArpScan(config)).rejects.toThrow('arp-scan is not installed in this image');
+  });
+
+  it('reports a timeout with the CIDR that was being scanned', async () => {
+    mockExecFileError({ killed: true, signal: 'SIGTERM', message: 'command timed out' });
+
+    await expect(runArpScan(config)).rejects.toThrow(`arp-scan timed out after 30s scanning ${config.cidr}`);
+  });
+
+  it('reports a non-zero exit with the interface and the first line of stderr', async () => {
+    mockExecFileError({ code: 1, message: 'Command failed', stderr: 'arp-scan: eno1: No such device\nmore detail\n' });
+
+    await expect(runArpScan(config)).rejects.toThrow('arp-scan failed on eno1 (exit 1): arp-scan: eno1: No such device');
+  });
+
+  it('falls back to the raw error message when stderr is empty', async () => {
+    mockExecFileError({ code: 2, message: 'Command failed with exit code 2' });
+
+    await expect(runArpScan(config)).rejects.toThrow('arp-scan failed on eno1 (exit 2): Command failed with exit code 2');
   });
 });

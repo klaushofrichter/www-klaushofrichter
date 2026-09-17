@@ -3,14 +3,9 @@ import os from 'node:os';
 import { promisify } from 'node:util';
 import { Device } from '../../src/survey/types';
 import { ScannerConfig } from './config';
+import { IPV4 } from './ipv4';
 
 const execFileAsync = promisify(execFile);
-
-// Shape-only would keep 999.999.999.999. This parser is the boundary between
-// a privileged subprocess's stdout and data that gets persisted and
-// rendered, so it holds to the same "valid", not "plausibly shaped",
-// standard as the CIDR check in config.ts.
-const IPV4 = /^((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d)$/;
 
 // arp-scan --plain prints "ip<TAB>mac<TAB>vendor" and nothing else. Every
 // device on the segment must answer ARP to be usable on it, so this finds
@@ -76,15 +71,34 @@ export function selfDevice(
   return toDevice({ ip: ipv4.address, mac: ipv4.mac.toLowerCase(), vendor: null });
 }
 
-async function runArpScan(config: ScannerConfig): Promise<string> {
-  // execFile, not exec: no shell, so the configured values are arguments
-  // rather than something a shell could reinterpret.
-  const { stdout } = await execFileAsync(
-    'arp-scan',
-    ['--interface', config.iface, '--plain', '--retry=2', '--timeout=200', config.cidr],
-    { timeout: 30_000, maxBuffer: 4 * 1024 * 1024 },
-  );
-  return stdout;
+// Exported so its error translation is covered directly, without going
+// through discover()'s injectable run — that injection exists so tests can
+// avoid spawning arp-scan at all, not to exercise this function's own
+// failure handling.
+export async function runArpScan(config: ScannerConfig): Promise<string> {
+  try {
+    // execFile, not exec: no shell, so the configured values are arguments
+    // rather than something a shell could reinterpret.
+    const { stdout } = await execFileAsync(
+      'arp-scan',
+      ['--interface', config.iface, '--plain', '--retry=2', '--timeout=200', config.cidr],
+      { timeout: 30_000, maxBuffer: 4 * 1024 * 1024 },
+    );
+    return stdout;
+  } catch (err) {
+    // This message is the whole diagnostic: it reaches the dashboard as
+    // "Last scan failed: ...", for a service with no public URL and no log
+    // access from the page.
+    const error = err as NodeJS.ErrnoException & { killed?: boolean; code?: string | number; stderr?: string };
+    if (error.code === 'ENOENT') {
+      throw new Error('arp-scan is not installed in this image');
+    }
+    if (error.killed) {
+      throw new Error(`arp-scan timed out after 30s scanning ${config.cidr}`);
+    }
+    const detail = (error.stderr ?? '').trim().split('\n')[0] || error.message;
+    throw new Error(`arp-scan failed on ${config.iface} (exit ${error.code}): ${detail}`);
+  }
 }
 
 export async function discover(
