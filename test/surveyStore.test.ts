@@ -66,4 +66,22 @@ describe('survey store', () => {
 
     await expect(readSavedSurvey(dir)).rejects.toThrow();
   });
+
+  it('throws when the saved file has no devices array', async () => {
+    await fs.writeFile(
+      path.join(dir, 'latest.json'),
+      JSON.stringify({ scannedAt: 'x', savedAt: 'y', cidr: 'z', version: 'dev' }),
+    );
+
+    await expect(readSavedSurvey(dir)).rejects.toThrow(/devices/);
+  });
+
+  it('throws when a saved device is missing its mac', async () => {
+    await fs.writeFile(
+      path.join(dir, 'latest.json'),
+      JSON.stringify({ scannedAt: 'x', savedAt: 'y', cidr: 'z', version: 'dev', devices: [{ ip: '192.168.1.2' }] }),
+    );
+
+    await expect(readSavedSurvey(dir)).rejects.toThrow(/devices/);
+  });
 });
