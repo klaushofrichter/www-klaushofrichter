@@ -41,24 +41,9 @@ function renderCard(link: Link): string {
         </div>`;
 }
 
-// HEADER_CSS styles #auth-button and #dashboard-button together with one
-// selector. A signed-out response must not mention "dashboard-button"
-// anywhere (see renderHeaderActions), so the homepage strips that half of
-// the shared rule out of its stylesheet when there's no button to style.
-function headerCssFor(isAuthenticated: boolean): string {
-  if (isAuthenticated) {
-    return HEADER_CSS;
-  }
-  return HEADER_CSS.replace('#auth-button, #dashboard-button {', '#auth-button {').replace(
-    '#auth-button:hover, #dashboard-button:hover {',
-    '#auth-button:hover {'
-  );
-}
-
-function pageCss(isAuthenticated: boolean): string {
-  return `
+const PAGE_CSS = `
   ${BASE_CSS}
-  ${headerCssFor(isAuthenticated)}
+  ${HEADER_CSS}
   .page { padding: 40px 5%; }
   .about { max-width: 640px; margin: 0 auto 40px; text-align: center; }
   .about-avatar {
@@ -99,7 +84,6 @@ function pageCss(isAuthenticated: boolean): string {
   }
   #refresh-message.visible { opacity: 1; }
 `;
-}
 
 const REFRESH_SCRIPT = `
   (function () {
@@ -178,7 +162,7 @@ export function renderPage(isAuthenticated: boolean): string {
     <meta name="twitter:image" content="${SITE_URL}/assets/og-image.png" />
     <meta name="twitter:image:alt" content="${escapeHtml(OG_IMAGE_ALT)}" />
     ${FAVICON_LINKS}
-    <style>${pageCss(isAuthenticated)}</style>
+    <style>${PAGE_CSS}</style>
   </head>
   <body>
     ${renderHeaderActions({ isAuthenticated, showRefresh: true })}

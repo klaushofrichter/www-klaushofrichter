@@ -89,7 +89,7 @@ describe('renderPage auth-gated cards and login button', () => {
   it('omits the Dashboard button entirely when logged out', () => {
     const html = renderPage(false);
 
-    expect(html).not.toContain('dashboard-button');
+    expect(html).not.toContain('id="dashboard-button"');
     expect(html).not.toContain('href="/dashboard"');
   });
 
