@@ -51,7 +51,12 @@ export interface ProbeOptions {
 export const tcpConnect: Connect = (ip, port, timeoutMs) =>
   new Promise((resolve) => {
     const socket = new net.Socket();
+    let settled = false;
     const done = (open: boolean) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
       socket.destroy();
       resolve(open);
     };
@@ -76,22 +81,36 @@ export const httpGet: Get = (ip, port, timeoutMs) =>
       rejectUnauthorized: false,
       headers: { accept: 'text/html' },
     };
+    let settled = false;
+    let body = '';
+    // Idle timeouts and the size cap both miss the case that matters here: a
+    // device that sends headers and then dribbles bytes forever. Only a
+    // wall-clock deadline bounds that.
+    const finish = (value: WebInfo | null) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(deadline);
+      request.destroy();
+      resolve(value);
+    };
+    const deadline = setTimeout(() => finish(null), Math.max(timeoutMs, 2000) * 3);
     const request = (tls ? https : http).get(url, options, (response) => {
-        let body = '';
-        response.setEncoding('utf8');
-        response.on('data', (chunk: string) => {
-          body += chunk;
-          // A title lives in the head; 64KB is generous and bounds a device
-          // that would otherwise stream forever.
-          if (body.length > 64 * 1024) {
-            request.destroy();
-          }
-        });
-      response.on('end', () => resolve({ url, title: extractTitle(body) }));
-      response.on('error', () => resolve({ url, title: extractTitle(body) }));
+      response.setEncoding('utf8');
+      response.on('data', (chunk: string) => {
+        body += chunk;
+        // A title lives in the head; 64KB is generous and bounds a device
+        // that would otherwise stream forever.
+        if (body.length > 64 * 1024) {
+          finish({ url, title: extractTitle(body) });
+        }
+      });
+      response.on('end', () => finish({ url, title: extractTitle(body) }));
+      response.on('error', () => finish({ url, title: extractTitle(body) }));
     });
-    request.on('timeout', () => request.destroy());
-    request.on('error', () => resolve(null));
+    request.on('timeout', () => finish(null));
+    request.on('error', () => finish(null));
   });
 
 async function mapWithLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {

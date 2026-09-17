@@ -1,5 +1,7 @@
+import net, { AddressInfo } from 'node:net';
+import http from 'node:http';
 import { describe, it, expect, vi } from 'vitest';
-import { extractTitle, PORTS, probeDevices } from '../../scanner/src/probes';
+import { extractTitle, PORTS, probeDevices, tcpConnect, httpGet } from '../../scanner/src/probes';
 import { Device } from '../../src/survey/types';
 
 function device(ip: string): Device {
@@ -79,5 +81,155 @@ describe('probeDevices', () => {
 
     expect(probed[0].ports).toEqual([]);
     expect(probed[1].ports.length).toBe(PORTS.length);
+  });
+});
+
+// These exercise the real, non-injected implementations against loopback
+// servers started in-process. That is not the "no real network I/O" the
+// binding constraints forbid (no LAN, no multicast, no DNS) -- it is the
+// only way to prove sockets are actually destroyed, the size cap actually
+// stops reading, and a stalled peer is actually bounded, rather than trusting
+// that a mock was wired up correctly.
+describe('tcpConnect against a real loopback socket', () => {
+  it('resolves true for a port something is listening on', async () => {
+    const server = net.createServer();
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const port = (server.address() as AddressInfo).port;
+
+    try {
+      await expect(tcpConnect('127.0.0.1', port, 500)).resolves.toBe(true);
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
+  it('resolves false for a port nothing is listening on', async () => {
+    const server = net.createServer();
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const port = (server.address() as AddressInfo).port;
+    // Close it immediately so the port is free but definitely refuses.
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+
+    await expect(tcpConnect('127.0.0.1', port, 500)).resolves.toBe(false);
+  });
+});
+
+describe('httpGet against a real loopback server', () => {
+  it('reads the title from a normal response', async () => {
+    const server = http.createServer((_req, res) => {
+      res.writeHead(200, { 'content-type': 'text/html' });
+      res.end('<html><head><title>Loopback Device</title></head></html>');
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const port = (server.address() as AddressInfo).port;
+
+    try {
+      const info = await httpGet('127.0.0.1', port, 500);
+      expect(info?.url).toBe(`http://127.0.0.1:${port}/`);
+      expect(info?.title).toBe('Loopback Device');
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
+  it('stops reading once the body passes the 64KB cap', async () => {
+    const server = http.createServer((_req, res) => {
+      res.writeHead(200, { 'content-type': 'text/html' });
+      // A body well past the cap; a device that streams forever must not be
+      // read forever.
+      res.end(`<title>Big</title>${'x'.repeat(200 * 1024)}`);
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const port = (server.address() as AddressInfo).port;
+
+    try {
+      const info = await httpGet('127.0.0.1', port, 500);
+      // The cap can land mid-title-scan or after it, depending on chunking;
+      // either way the call must resolve instead of buffering 200KB.
+      expect(info).not.toBeNull();
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
+  it('resolves within the wall-clock deadline against a server that dribbles forever', async () => {
+    // Headers arrive, then a byte arrives faster than the idle timeout ever
+    // elapses, so the per-chunk idle timer never fires and the 64KB cap is
+    // never reached either. Only the wall-clock deadline can end this -- the
+    // regression case for the Critical finding.
+    const server = http.createServer((_req, res) => {
+      res.writeHead(200, { 'content-type': 'text/html' });
+      res.write('<title>Slow Device</title>');
+      const drip = setInterval(() => {
+        if (res.writableEnded) {
+          clearInterval(drip);
+          return;
+        }
+        res.write(' ');
+      }, 30);
+      res.on('close', () => clearInterval(drip));
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const port = (server.address() as AddressInfo).port;
+
+    const started = Date.now();
+    // timeoutMs is small on purpose; the drip (every 30ms) keeps beating the
+    // idle timer, so what actually bounds this call is the wall-clock
+    // deadline (Math.max(timeoutMs, 2000) * 3 = 6000ms), not the idle timer.
+    const info = await httpGet('127.0.0.1', port, 50);
+    const elapsed = Date.now() - started;
+
+    expect(info).toBeNull();
+    expect(elapsed).toBeGreaterThanOrEqual(5000);
+    expect(elapsed).toBeLessThan(9000);
+
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }, 12000);
+});
+
+describe('probeDevices concurrency caps', () => {
+  it('caps concurrent devices in flight at 8', async () => {
+    let inFlightDevices = 0;
+    let maxInFlightDevices = 0;
+    const started = new Set<string>();
+    // Only the first port probe per device is delayed, so the test stays
+    // fast while still exposing device-level overlap.
+    const connect = vi.fn(async (ip: string) => {
+      if (!started.has(ip)) {
+        started.add(ip);
+        inFlightDevices += 1;
+        maxInFlightDevices = Math.max(maxInFlightDevices, inFlightDevices);
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        inFlightDevices -= 1;
+      }
+      return false;
+    });
+
+    const devices = Array.from({ length: 20 }, (_, i) => device(`192.168.1.${i + 1}`));
+    await probeDevices(devices, { connect, get: async () => null, timeoutMs: 5, concurrency: 1 });
+
+    expect(maxInFlightDevices).toBeGreaterThan(1);
+    expect(maxInFlightDevices).toBeLessThanOrEqual(8);
+  });
+
+  it('caps concurrent ports in flight per device at the configured concurrency', async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const connect = vi.fn(async () => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      inFlight -= 1;
+      return false;
+    });
+
+    await probeDevices([device('192.168.1.50')], {
+      connect, get: async () => null, timeoutMs: 5, concurrency: 3,
+    });
+
+    expect(maxInFlight).toBeLessThanOrEqual(3);
+    // 16 ports over a limit of 3 means the cap is actually reached, not just
+    // never exceeded.
+    expect(maxInFlight).toBe(3);
   });
 });
