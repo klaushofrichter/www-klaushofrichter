@@ -21,7 +21,10 @@ COPY assets ./assets
 # Downloads served at /public. Baked in rather than mounted: they change
 # only when someone commits a file, which is a deploy anyway.
 COPY public ./public
-RUN mkdir -p /app/data/images && chown -R node:node /app/data
+# data/surveys is where the www-data PVC mounts. Created here too, so a pod
+# without the volume still starts and can save (to container storage that a
+# restart discards).
+RUN mkdir -p /app/data/images /app/data/surveys && chown -R node:node /app/data
 USER node
 EXPOSE 8080
 CMD ["node", "dist/server.js"]
