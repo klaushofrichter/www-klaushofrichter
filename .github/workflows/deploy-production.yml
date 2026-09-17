@@ -76,6 +76,18 @@ jobs:
             ghcr.io/klaushofrichter/www-klaushofrichter:${{ github.sha }}
             ghcr.io/klaushofrichter/www-klaushofrichter:v${{ steps.ver.outputs.version }}
 
+      - name: Build and push the scanner
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: scanner/Dockerfile
+          push: true
+          build-args: |
+            APP_VERSION=${{ steps.ver.outputs.version }}
+          tags: |
+            ghcr.io/klaushofrichter/www-klaushofrichter-scanner:${{ github.sha }}
+            ghcr.io/klaushofrichter/www-klaushofrichter-scanner:v${{ steps.ver.outputs.version }}
+
       - name: Prune old Docker images
         run: docker system prune -af --filter "until=168h" || true
 
@@ -88,12 +100,20 @@ jobs:
           rm -rf /tmp/kube-setup-deploy
           git clone "https://x-access-token:${KUBE_SETUP_DEPLOY_TOKEN}@github.com/klaushofrichter/kube-setup.git" /tmp/kube-setup-deploy
           cd /tmp/kube-setup-deploy
+          # The scanner goes first: a new website must never talk to an older
+          # scanner. kubectl set image, not apply: the runner's RBAC only
+          # grants patch on this one Deployment by name, so it can never
+          # create or replace a privileged pod spec of its own.
+          sed -i "s|image: ghcr.io/klaushofrichter/www-klaushofrichter-scanner:.*|image: ghcr.io/klaushofrichter/www-klaushofrichter-scanner:${SHA}|" manifests/www-klaushofrichter/www-scanner-deployment.yaml
+          kubectl set image deployment/www-scanner -n www-klaushofrichter \
+            scanner="ghcr.io/klaushofrichter/www-klaushofrichter-scanner:${SHA}"
+          kubectl rollout status deployment/www-scanner -n www-klaushofrichter --timeout=120s
           sed -i "s|image: ghcr.io/klaushofrichter/www-klaushofrichter:.*|image: ghcr.io/klaushofrichter/www-klaushofrichter:${SHA}|" manifests/www-klaushofrichter/www-ksvc.yaml
           grep -q "image: ghcr.io/klaushofrichter/www-klaushofrichter:${SHA}$" manifests/www-klaushofrichter/www-ksvc.yaml \
             || { echo "::error::manifest image line did not update to ${SHA}"; exit 1; }
           git config user.name "www-klaushofrichter-deploy-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add manifests/www-klaushofrichter/www-ksvc.yaml
+          git add manifests/www-klaushofrichter/www-ksvc.yaml manifests/www-klaushofrichter/www-scanner-deployment.yaml
           if git diff --cached --quiet; then
             echo "No manifest change (image tag already up to date) — skipping commit/push."
           else
@@ -162,6 +182,13 @@ jobs:
           grep -q 'class="name"' /tmp/public.html \
             || { echo "::error::/public listed no files - is public/ in the image?"; exit 1; }
           echo "public file listing ok"
+          # The scanner has no public hostname, so this is the only place its
+          # health is checked. Never starts a scan: deploys must not scan the LAN.
+          scanner=$(curl -s -o /tmp/scanner.json -w "%{http_code}" "http://10.42.0.1:9450/health")
+          [ "$scanner" = "200" ] || { echo "::error::scanner /health returned ${scanner}"; exit 1; }
+          grep -q "\"version\":\"${VERSION}\"" /tmp/scanner.json \
+            || { echo "::error::scanner reports $(cat /tmp/scanner.json), expected ${VERSION}"; exit 1; }
+          echo "scanner ok"
           # Recorded for the release notes below. The value of writing this into
           # the release is that it is evidence tied to a moment: this build
           # answered on the public URL at this timestamp. Reading it later beats
