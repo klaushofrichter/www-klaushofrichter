@@ -10,7 +10,11 @@ export interface ScannerConfig {
   version: string;
 }
 
-const CIDR = /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/;
+// Shape-only would accept 999.999.999.999/99, which becomes an argument to
+// the arp-scan process this config feeds (Task 3). No shell is involved, so
+// this is not an injection risk either way, but "refuses to start on bad
+// input" is a stated constraint and this is the value reaching that subprocess.
+const CIDR = /^((25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(25[0-5]|2[0-4]\d|1?\d?\d)\/([0-9]|[12]\d|3[0-2])$/;
 // arp-scan is spawned without a shell, but a strict interface name keeps the
 // value from being interesting if that ever changes.
 const IFACE = /^[A-Za-z0-9._-]{1,32}$/;

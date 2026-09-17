@@ -39,6 +39,16 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ ...valid, SCAN_CIDR: 'all-of-them' })).toThrow(/SCAN_CIDR/);
   });
 
+  it('refuses out-of-range octets or prefix lengths, since the value reaches a spawned process', () => {
+    expect(() => loadConfig({ ...valid, SCAN_CIDR: '999.999.999.999/99' })).toThrow(/SCAN_CIDR/);
+    expect(() => loadConfig({ ...valid, SCAN_CIDR: '192.168.1.0/33' })).toThrow(/SCAN_CIDR/);
+  });
+
+  it('still accepts valid CIDRs at both ends of the octet and prefix range', () => {
+    expect(loadConfig({ ...valid, SCAN_CIDR: '192.168.1.0/24' }).cidr).toBe('192.168.1.0/24');
+    expect(loadConfig({ ...valid, SCAN_CIDR: '10.0.0.0/8' }).cidr).toBe('10.0.0.0/8');
+  });
+
   it('refuses an interface name that could reach a shell', () => {
     expect(() => loadConfig({ ...valid, SCAN_INTERFACE: 'eno1; rm -rf /' })).toThrow(/SCAN_INTERFACE/);
   });
