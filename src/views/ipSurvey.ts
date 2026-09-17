@@ -1,8 +1,9 @@
 import { SurveyStatus } from '../survey/types';
 import { renderDashboardShell } from './dashboardShell';
 
-// "<" becomes < so no value - a device name, a page title - can close
-// the <script> element the JSON sits in. JSON.parse reads it back unchanged.
+// "<" is replaced with its escaped form so no value - a device name, a page
+// title - can close the <script> element the JSON sits in. JSON.parse reads
+// it back unchanged.
 export function embedJson(value: unknown): string {
   return JSON.stringify(value).replace(/</g, '\\u003c');
 }
@@ -236,7 +237,12 @@ const IP_SURVEY_SCRIPT = `
         .then(function (response) {
           if (response.status === 401) {
             window.location.href = '/';
-            throw new Error('signed out');
+            // Tagged so callers can tell "the session ended, a redirect is
+            // already under way" apart from a transport failure worth
+            // reporting and retrying.
+            var signedOut = new Error('signed out');
+            signedOut.signedOut = true;
+            throw signedOut;
           }
           return response.json().catch(function () { return {}; }).then(function (body) {
             return { status: response.status, body: body };
@@ -253,6 +259,7 @@ const IP_SURVEY_SCRIPT = `
           showMessage('');
           apply(r.body);
         }).catch(function (err) {
+          if (err.signedOut) return;
           showMessage('Lost track of the scan (' + err.message + '), retrying.');
           if (state.scan.state === 'running') schedulePoll();
         });
@@ -269,6 +276,7 @@ const IP_SURVEY_SCRIPT = `
         if (r.status === 503) { apply(r.body.status); showMessage('Scanner unavailable.'); return; }
         throw new Error('HTTP ' + r.status);
       }).catch(function (err) {
+        if (err.signedOut) return;
         showMessage('Could not start a scan: ' + err.message);
         renderToolbar();
       });
@@ -283,6 +291,7 @@ const IP_SURVEY_SCRIPT = `
         if (r.status === 503) { showMessage('Scanner unavailable, so its result could not be read. Nothing was saved.'); renderToolbar(); return; }
         throw new Error('HTTP ' + r.status);
       }).catch(function (err) {
+        if (err.signedOut) return;
         showMessage('Save failed (' + err.message + '). The unsaved scan is still shown.');
         renderToolbar();
       });
