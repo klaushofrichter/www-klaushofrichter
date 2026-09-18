@@ -91,7 +91,30 @@ test.describe('IP survey against the fake scanner', () => {
 
     // Randomized MAC is labelled, web devices are links
     await expect(page.locator('#survey-rows')).toContainText('Private address');
-    await expect(page.locator('#survey-rows a[href="http://192.168.1.50:8123"]')).toHaveText('homeassistant.local');
+    // Scoped to the Name cell: since the Web column also links, an unscoped
+    // href selector now matches two anchors on this row.
+    await expect(
+      rows.filter({ hasText: 'homeassistant.local' }).locator('td').nth(2).locator('a')
+    ).toHaveText('homeassistant.local');
+
+    // The Web column links too, not only the Name column. Asserted without row
+    // indexes: this test reverses the sort earlier, so nth(0) is not a stable
+    // way to reach a known device.
+    //
+    // A device that answered HTTP gets a clickable cell showing its page title;
+    // Name and Web both point at the same URL, hence two anchors for that href.
+    const webLink = page.locator('#survey-rows a[href="http://192.168.1.1"]');
+    await expect(webLink).toHaveCount(2);
+    await expect(
+      page.locator('#survey-rows a', { hasText: 'ASUS Wireless Router RT-AX86U' })
+    ).toHaveCount(1);
+
+    // 192.168.1.9 answered nothing (web: null in the fixture), so nothing on
+    // that row is offered as a link - a dead address must never look clickable.
+    const deadRow = rows.filter({ hasText: 'Lab <b>bench</b>' });
+    await expect(deadRow).toHaveCount(1);
+    await expect(deadRow.locator('a')).toHaveCount(0);
+    await expect(deadRow.locator('td').nth(5)).toHaveText('—');
 
     // Details dialog
     await rows.filter({ hasText: 'homeassistant.local' }).getByRole('button', { name: '2 ports' }).click();

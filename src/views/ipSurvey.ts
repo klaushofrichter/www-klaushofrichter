@@ -299,7 +299,25 @@ const IP_SURVEY_SCRIPT = `
 
         tr.appendChild(el('td', row.privateMac ? 'Private address' : (row.vendor || '—')));
         tr.appendChild(el('td', row.mac, 'mono'));
-        tr.appendChild(el('td', row.web ? (row.web.title || row.web.url) : '—'));
+        // The Web cell links rather than printing text. row.web is only
+        // populated when an HTTP response actually arrived - scanner httpGet
+        // resolves WebInfo inside the response callback and resolves null on
+        // both timeout and error - so its presence already means "answers a
+        // browser' and no extra check is needed here. Status is deliberately
+        // not filtered: a 404 page is still a page, and its title ('LNKSS Page
+        // Not Found') is the most useful label that device has.
+        //
+        // Both forms link, matching the ports detail view below. A title is
+        // the friendlier label; a bare URL is what is shown when the device
+        // served no title element.
+        var webCell = el('td');
+        var webHref = row.web ? safeHref(row.web.url) : null;
+        if (webHref) {
+          webCell.appendChild(link(webHref, row.web.title || row.web.url));
+        } else {
+          webCell.textContent = '—';
+        }
+        tr.appendChild(webCell);
 
         tr.appendChild(noteCell(row));
 
