@@ -15,7 +15,7 @@ export interface DashboardShellOptions {
 }
 
 const SHELL_CSS = `
-  .page { padding: 40px 5%; max-width: 1100px; margin: 0 auto; }
+  .page { padding: 24px 16px; }
   .breadcrumb { font-size: 13px; margin: 0 0 18px; opacity: 0.85; }
   .breadcrumb a { color: #93a5fd; text-decoration: none; }
   .breadcrumb a:hover { text-decoration: underline; }

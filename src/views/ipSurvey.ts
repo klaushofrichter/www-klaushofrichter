@@ -29,10 +29,18 @@ const IP_SURVEY_CSS = `
   .badge { display: inline-block; padding: 1px 8px; border-radius: 9px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
   .badge-new { background: #065f46; color: #d1fae5; }
   .badge-gone { background: #4b5563; color: #e5e7eb; }
+  .status-none { opacity: 0.35; }
   .source { margin-left: 6px; font-size: 10px; opacity: 0.55; text-transform: uppercase; }
   .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
   td a { color: #93a5fd; text-decoration: none; }
   td a:hover { text-decoration: underline; }
+  .note-input {
+    width: 100%; min-width: 160px; box-sizing: border-box; white-space: normal;
+    height: 26px; padding: 0 8px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08);
+    color: #eef0fb; font: inherit; font-size: 12px;
+  }
+  .note-input:focus { outline: 1px solid #93a5fd; }
   .details-button {
     height: 26px; padding: 0 10px; border-radius: 13px;
     border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08);
@@ -109,11 +117,22 @@ const IP_SURVEY_SCRIPT = `
       message.textContent = text;
     }
 
+    // Note feedback has its own element and its own show function so the
+    // 1.5s poll (which clears survey-message on every tick) cannot blank a
+    // "Note saved." or failure notice before the user has had time to read
+    // it -- saves are blur-triggered, so a scan in progress can fire this
+    // poll up to 30 times while a failure message is still on screen.
+    var noteMessage = document.getElementById('note-message');
+    function showNoteMessage(text) {
+      noteMessage.textContent = text;
+    }
+
     function sortValue(row, key) {
       if (key === 'name') return (row.name || '').toLowerCase();
       if (key === 'vendor') return (row.privateMac ? 'private address' : (row.vendor || '')).toLowerCase();
       if (key === 'mac') return row.mac.toLowerCase();
       if (key === 'web') return row.web ? (row.web.title || row.web.url).toLowerCase() : '';
+      if (key === 'note') return (row.note || '').toLowerCase();
       return row[key];
     }
 
@@ -155,7 +174,103 @@ const IP_SURVEY_SCRIPT = `
       dialog.showModal();
     }
 
+    // A poll can land while the user is mid-edit on a note, or right after a
+    // save fails: saving happens on blur, so a failed save leaves an input
+    // that is no longer focused but still holds text that was never
+    // persisted. Rebuilding the table from server state would silently drop
+    // that text, so every note input whose value differs from the value it
+    // was loaded with is captured here (not only the focused one) and
+    // restored onto its replacement once the new rows exist. Focus and
+    // cursor position are preserved only for the row actually being typed
+    // in, since only one input can be focused at a time.
+    //
+    // This does not special-case IME composition (an input mid-composition
+    // that loses focus here would restore its plain value, not the
+    // in-progress composition state) -- a known limitation, not fixed here.
+    function captureNoteState() {
+      var dirty = {};
+      var inputs = tbody.querySelectorAll('input.note-input');
+      Array.prototype.forEach.call(inputs, function (input) {
+        var loaded = input.getAttribute('data-loaded') || '';
+        if (input.value !== loaded) {
+          dirty[input.getAttribute('data-mac')] = input.value;
+        }
+      });
+      var active = document.activeElement;
+      var focused = null;
+      if (active && active.tagName === 'INPUT' && active.className.indexOf('note-input') !== -1) {
+        focused = {
+          mac: active.getAttribute('data-mac'),
+          selectionStart: active.selectionStart,
+          selectionEnd: active.selectionEnd
+        };
+      }
+      return { dirty: dirty, focused: focused };
+    }
+
+    function restoreNoteState(captured) {
+      if (!captured) return;
+      Object.keys(captured.dirty).forEach(function (mac) {
+        var input = tbody.querySelector('input[data-mac="' + mac + '"]');
+        if (input) input.value = captured.dirty[mac];
+      });
+      if (!captured.focused) return;
+      var focusedInput = tbody.querySelector('input[data-mac="' + captured.focused.mac + '"]');
+      if (!focusedInput) return;
+      focusedInput.focus();
+      try {
+        focusedInput.setSelectionRange(captured.focused.selectionStart, captured.focused.selectionEnd);
+      } catch (e) {
+        // Some input states (e.g. mid-composition) reject setSelectionRange;
+        // the value is already restored, so losing the cursor position is fine.
+      }
+    }
+
+    function noteCell(row) {
+      var td = el('td');
+      var input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'note-input';
+      input.maxLength = 500;
+      input.value = row.note || '';
+      input.setAttribute('data-mac', row.mac);
+      input.setAttribute('data-loaded', row.note || '');
+      input.setAttribute('aria-label', 'Note for ' + (row.name || row.ip));
+      input.addEventListener('blur', function () { saveNote(input, row.mac); });
+      input.addEventListener('keydown', function (evt) {
+        if (evt.key === 'Enter') {
+          evt.preventDefault();
+          input.blur();
+        }
+      });
+      td.appendChild(input);
+      return td;
+    }
+
+    function saveNote(input, mac) {
+      var loaded = input.getAttribute('data-loaded');
+      var text = input.value;
+      if (text === loaded) return;
+      showNoteMessage('Saving note…');
+      request('POST', '/api/survey/notes', { mac: mac, text: text }).then(function (r) {
+        if (r.status !== 200) {
+          var reason = r.body && r.body.error ? r.body.error : ('HTTP ' + r.status);
+          showNoteMessage('Note not saved (' + reason + '). Your text is still in the box.');
+          return;
+        }
+        showNoteMessage('Note saved.');
+        // apply() re-renders the whole table; renderRows() itself preserves
+        // every note input whose text differs from what it was loaded with,
+        // not only the one that currently has focus.
+        apply(r.body);
+      }).catch(function (err) {
+        if (err.signedOut) return;
+        showNoteMessage('Note not saved (' + err.message + '). Your text is still in the box.');
+      });
+    }
+
     function renderRows() {
+      var captured = captureNoteState();
       tbody.textContent = '';
       var rows = state.view.rows.slice().sort(compareRows);
       rows.forEach(function (row) {
@@ -163,7 +278,9 @@ const IP_SURVEY_SCRIPT = `
         if (row.status === 'gone') tr.className = 'gone';
 
         var statusCell = el('td');
-        if (row.status !== 'unchanged') {
+        if (row.status === 'unchanged') {
+          statusCell.appendChild(el('span', '—', 'status-none'));
+        } else {
           statusCell.appendChild(el('span', row.status, 'badge badge-' + row.status));
         }
         tr.appendChild(statusCell);
@@ -184,6 +301,8 @@ const IP_SURVEY_SCRIPT = `
         tr.appendChild(el('td', row.mac, 'mono'));
         tr.appendChild(el('td', row.web ? (row.web.title || row.web.url) : '—'));
 
+        tr.appendChild(noteCell(row));
+
         var detailsCell = el('td');
         if (row.ports.length > 0 || row.services.length > 0) {
           var label = row.ports.length === 1 ? '1 port' : (row.ports.length > 1 ? row.ports.length + ' ports' : 'Details');
@@ -199,6 +318,7 @@ const IP_SURVEY_SCRIPT = `
         tbody.appendChild(tr);
       });
       table.hidden = rows.length === 0;
+      restoreNoteState(captured);
     }
 
     function renderToolbar() {
@@ -221,7 +341,10 @@ const IP_SURVEY_SCRIPT = `
       } else if (view.source === 'saved') {
         statusLine.textContent = 'Saved survey · ' + formatTime(view.savedAt) + ' · ' + view.counts.devices + ' devices';
       } else {
-        statusLine.textContent = 'Unsaved scan · ' + formatTime(view.scannedAt) + ' · ' + view.counts.devices + ' devices · ' + view.counts.new + ' new · ' + view.counts.gone + ' gone';
+        var comparedTo = view.hasSaved
+          ? 'compared with the saved survey'
+          : 'no saved survey yet, so nothing to compare with — Save to set a baseline';
+        statusLine.textContent = 'Unsaved scan · ' + formatTime(view.scannedAt) + ' · ' + comparedTo + ' · ' + view.counts.devices + ' devices · ' + view.counts.new + ' new · ' + view.counts.gone + ' gone';
       }
     }
 
@@ -232,8 +355,13 @@ const IP_SURVEY_SCRIPT = `
       if (state.scan.state === 'running') schedulePoll();
     }
 
-    function request(method, url) {
-      return fetch(url, { method: method, credentials: 'same-origin', headers: { accept: 'application/json' } })
+    function request(method, url, jsonBody) {
+      var init = { method: method, credentials: 'same-origin', headers: { accept: 'application/json' } };
+      if (jsonBody !== undefined) {
+        init.headers['content-type'] = 'application/json';
+        init.body = JSON.stringify(jsonBody);
+      }
+      return fetch(url, init)
         .then(function (response) {
           if (response.status === 401) {
             window.location.href = '/';
@@ -363,6 +491,7 @@ export function renderIpSurveyPage(status: SurveyStatus): string {
       </div>
       <p id="survey-status-line"></p>
       <p id="survey-message" role="alert"></p>
+      <p id="note-message" role="status" aria-live="polite"></p>
       <div class="table-wrap">
         <table id="survey-table" hidden>
           <thead>
@@ -373,6 +502,7 @@ export function renderIpSurveyPage(status: SurveyStatus): string {
               <th data-sort-key="vendor" aria-sort="none"><button type="button">Manufacturer</button></th>
               <th data-sort-key="mac" aria-sort="none"><button type="button">MAC</button></th>
               <th data-sort-key="web" aria-sort="none"><button type="button">Web</button></th>
+              <th data-sort-key="note" aria-sort="none"><button type="button">Notes</button></th>
               <th>Details</th>
             </tr>
           </thead>

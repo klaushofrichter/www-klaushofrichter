@@ -77,7 +77,8 @@ describe('compareToSaved', () => {
 describe('buildSurveyView', () => {
   it('is empty with neither a scan nor a saved survey', () => {
     expect(buildSurveyView(null, null)).toEqual({
-      source: 'none', scannedAt: null, savedAt: null, unsaved: false, rows: [], counts: { devices: 0, new: 0, gone: 0 },
+      source: 'none', scannedAt: null, savedAt: null, unsaved: false, hasSaved: false, rows: [],
+      counts: { devices: 0, new: 0, gone: 0 },
     });
   });
 
@@ -100,6 +101,14 @@ describe('buildSurveyView', () => {
     expect(view.unsaved).toBe(true);
     expect(view.scannedAt).toBe('2026-09-17T11:00:00.000Z');
     expect(view.counts).toEqual({ devices: 2, new: 1, gone: 1 });
+    expect(view.hasSaved).toBe(true);
+  });
+
+  it('flags an unsaved scan as having no baseline when nothing has ever been saved', () => {
+    const view = buildSurveyView(scan([device('192.168.1.2', 'aa:aa:aa:aa:aa:01')]), null);
+
+    expect(view.source).toBe('scan');
+    expect(view.hasSaved).toBe(false);
   });
 
   it('shows the saved survey once the finished scan has been saved', () => {
@@ -108,5 +117,30 @@ describe('buildSurveyView', () => {
 
     expect(view.source).toBe('saved');
     expect(view.unsaved).toBe(false);
+  });
+
+  it('defaults every row to no note when none is given', () => {
+    const view = buildSurveyView(null, saved([device('192.168.1.2', 'aa:aa:aa:aa:aa:01')]));
+
+    expect(view.rows[0].note).toBeNull();
+  });
+
+  it('merges a note onto its device by MAC, case-insensitively', () => {
+    const view = buildSurveyView(null, saved([device('192.168.1.2', 'AA:AA:AA:AA:AA:01')]), {
+      'aa:aa:aa:aa:aa:01': { text: 'kitchen printer', updatedAt: '2026-09-17T12:00:00.000Z' },
+    });
+
+    expect(view.rows[0].note).toBe('kitchen printer');
+  });
+
+  it('keeps a note on a device that disappeared, so it comes back if the device does', () => {
+    const view = buildSurveyView(
+      scan([device('192.168.1.2', 'aa:aa:aa:aa:aa:01')]),
+      saved([device('192.168.1.2', 'aa:aa:aa:aa:aa:01'), device('192.168.1.3', 'aa:aa:aa:aa:aa:02')]),
+      { 'aa:aa:aa:aa:aa:02': { text: 'old laptop', updatedAt: '2026-09-17T12:00:00.000Z' } },
+    );
+
+    const gone = view.rows.find((row) => row.status === 'gone');
+    expect(gone?.note).toBe('old laptop');
   });
 });
