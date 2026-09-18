@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist-scanner",
+    "rootDir": ".",
+    "types": ["node"]
+  },
+  "include": ["scanner/src/**/*.ts", "src/survey/types.ts"]
+}

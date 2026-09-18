@@ -1,0 +1,9 @@
+# Accepted CodeQL findings. The gate in production-checks.yml ignores exactly
+# these, and nothing else — every other finding still blocks a merge.
+#
+# Changing this file takes a pull request, so an exception is reviewed the same
+# way code is. Keep the reason specific enough that someone can decide later
+# whether it still holds.
+#
+# ruleId<TAB>path<TAB>reason
+js/disabling-certificate-validation	scanner/src/probes.ts	Home LAN devices present self-signed certificates. The scanner reads a page <title> over TLS to label a device; it sends no credential and no cookie, and the title is rendered as text. Validating would lose titles from devices like a Synology on 5001 with nothing to protect on the connection. Reviewed 2026-09-18.

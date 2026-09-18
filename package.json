@@ -5,6 +5,8 @@
   "type": "commonjs",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "build:scanner": "tsc -p tsconfig.scanner.json",
+    "scanner": "tsx scanner/src/main.ts",
     "start": "node dist/server.js",
     "dev": "tsx --env-file=.env src/server.ts",
     "test": "vitest run",
@@ -18,6 +20,7 @@
     "express-rate-limit": "^8.7.0",
     "google-auth-library": "^11.0.2",
     "jsonwebtoken": "^9.0.3",
+    "multicast-dns": "^7.2.5",
     "node-cron": "^4.6.0"
   },
   "devDependencies": {

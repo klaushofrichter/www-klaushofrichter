@@ -4,6 +4,22 @@ import { SavedSurvey } from './types';
 
 const LATEST = 'latest.json';
 
+// Reached through a different door than the scanner client, but the same gap:
+// a device without ip/mac throws in compareToSaved on every later request
+// once it's on disk, so corrupt or malformed saves must fail loudly here too.
+function assertSavedSurvey(value: unknown): SavedSurvey {
+  const survey = value as SavedSurvey | null;
+  if (!survey || !Array.isArray(survey.devices)) {
+    throw new Error('Saved survey is malformed: devices is not an array');
+  }
+  for (const device of survey.devices) {
+    if (typeof device?.ip !== 'string' || typeof device?.mac !== 'string') {
+      throw new Error('Saved survey is malformed: devices contains an entry missing ip or mac');
+    }
+  }
+  return survey;
+}
+
 // dist/survey/store.js -> /app/data/surveys in the image, where the www-data
 // PVC is mounted. SURVEY_DIR overrides it for tests, CI and local runs.
 export function surveyDir(): string {
@@ -22,7 +38,7 @@ export async function readSavedSurvey(dir: string = surveyDir()): Promise<SavedS
   }
   // A corrupt file throws instead of reading as "nothing saved": treating it
   // as empty would let the next save silently overwrite whatever is left.
-  return JSON.parse(raw) as SavedSurvey;
+  return assertSavedSurvey(JSON.parse(raw));
 }
 
 // Written to a temporary file in the same directory and renamed into place.
