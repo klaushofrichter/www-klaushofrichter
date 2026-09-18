@@ -139,26 +139,31 @@ export async function probeDevices(devices: Device[], options: ProbeOptions = {}
       const isOpen = await connect(device.ip, candidate.port, timeoutMs).catch(() => false);
       return isOpen ? candidate : null;
     });
-    const ports: DevicePort[] = [];
-    let web: WebInfo | null = null;
-    // The saved device only ever keeps one `web` entry, so once the first
-    // open web port has had its title fetch attempted, trying the rest is
-    // pure cost: up to seven sequential 6s fetches (42s) per device for a
-    // title nobody reads. One attempt per device is enough, whether or not
-    // it succeeds.
-    let titleFetchAttempted = false;
-    for (const candidate of open) {
-      if (!candidate) {
-        continue;
-      }
-      let portWeb: WebInfo | null = null;
-      if (candidate.web && !titleFetchAttempted) {
-        titleFetchAttempted = true;
-        portWeb = await get(device.ip, candidate.port, Math.max(timeoutMs, 2000)).catch(() => null);
-        web = portWeb;
-      }
-      ports.push({ port: candidate.port, service: candidate.service, web: portWeb });
-    }
+    const openCandidates = open.filter(
+      (candidate): candidate is { port: number; service: string; web: boolean } => candidate !== null,
+    );
+    // Fetching every open web port sequentially cost up to seven 6s
+    // deadlines (42s) per device. Firing them all at once bounds a device to
+    // about one deadline (~6s worst case) while still finding a title behind
+    // whichever port actually answers -- a device whose first open web port
+    // is slow or broken (a router on 80 and 443, a device on 8080 that only
+    // serves on 8123) must not lose its title and link just because it
+    // wasn't the first one tried.
+    const webResults = await Promise.all(
+      openCandidates.map((candidate) =>
+        candidate.web
+          ? get(device.ip, candidate.port, Math.max(timeoutMs, 2000)).catch(() => null)
+          : Promise.resolve(null),
+      ),
+    );
+    // The first non-null result in port order, not whichever settles first,
+    // so the choice is deterministic regardless of relative response times.
+    const web = webResults.find((result) => result !== null) ?? null;
+    const ports: DevicePort[] = openCandidates.map((candidate, index) => ({
+      port: candidate.port,
+      service: candidate.service,
+      web: webResults[index],
+    }));
     return { ...device, ports, web };
   });
 }

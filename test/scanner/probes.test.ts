@@ -69,21 +69,61 @@ describe('probeDevices', () => {
     expect(probed.web).toBeNull();
   });
 
-  it('issues one title fetch per device even when several web ports respond', async () => {
-    // Regression for the ~22-minute scan bug: the old code fetched a title
-    // from every open web port even though the result only ever keeps one.
+  it('fetches every open web port concurrently rather than sequentially', async () => {
+    // Regression for the ~22-minute scan bug: the old sequential code cost
+    // up to seven 6s deadlines per device. Firing them all at once bounds a
+    // device to about one deadline regardless of how many web ports it has.
+    let inFlight = 0;
+    let maxInFlight = 0;
     const connect = vi.fn(async (_ip: string, port: number) => [80, 443, 8080, 8123].includes(port));
-    const get = vi.fn(async (ip: string, port: number) => ({ url: `http://${ip}:${port}`, title: `title-${port}` }));
+    const get = vi.fn(async (ip: string, port: number) => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      inFlight -= 1;
+      return { url: `http://${ip}:${port}`, title: `title-${port}` };
+    });
 
     const [probed] = await probeDevices([device('192.168.1.50')], { connect, get, timeoutMs: 10 });
 
-    expect(get).toHaveBeenCalledTimes(1);
-    // 80 is the first web port in PORTS order, so it is the one attempted.
-    expect(get).toHaveBeenCalledWith('192.168.1.50', 80, expect.any(Number));
+    expect(get).toHaveBeenCalledTimes(4);
+    // All four fetches overlapped rather than running one at a time.
+    expect(maxInFlight).toBeGreaterThan(1);
+    // The first port in PORTS order (80) wins when every port responds.
     expect(probed.web).toEqual({ url: 'http://192.168.1.50:80', title: 'title-80' });
-    // Every open port is still recorded, even the ones never fetched.
     expect(probed.ports.map((p) => p.port)).toEqual([80, 443, 8080, 8123]);
-    expect(probed.ports.find((p) => p.port === 443)?.web).toBeNull();
+  });
+
+  it('keeps the first non-null result in port order, not whichever port answered first, when an earlier port is slow or broken', async () => {
+    // The residual gap from the re-review: a device whose first open web
+    // port is dead or slow (a router on 80 and 443, a device on 8080 that
+    // only serves on 8123) must not lose its title and link just because it
+    // wasn't the first one tried.
+    const connect = vi.fn(async (_ip: string, port: number) => [80, 443, 8123].includes(port));
+    const get = vi.fn(async (ip: string, port: number) => {
+      if (port === 80) {
+        return null;
+      }
+      if (port === 443) {
+        return { url: `http://${ip}:${port}`, title: `title-${port}` };
+      }
+      return { url: `http://${ip}:${port}`, title: `title-${port}` };
+    });
+
+    const [probed] = await probeDevices([device('192.168.1.50')], { connect, get, timeoutMs: 10 });
+
+    // All three open web ports were fetched together, not stopped after 80.
+    expect(get).toHaveBeenCalledTimes(3);
+    expect(get).toHaveBeenCalledWith('192.168.1.50', 80, expect.any(Number));
+    expect(get).toHaveBeenCalledWith('192.168.1.50', 443, expect.any(Number));
+    expect(get).toHaveBeenCalledWith('192.168.1.50', 8123, expect.any(Number));
+    // 443 is the first port (in PORTS order) with a non-null result.
+    expect(probed.web).toEqual({ url: 'http://192.168.1.50:443', title: 'title-443' });
+    expect(probed.ports.find((p) => p.port === 80)?.web).toBeNull();
+    expect(probed.ports.find((p) => p.port === 443)?.web).toEqual({
+      url: 'http://192.168.1.50:443',
+      title: 'title-443',
+    });
   });
 
   it('does not let one unreachable device fail the others', async () => {
