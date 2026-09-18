@@ -134,20 +134,3 @@ jobs:
             echo "::error::CodeQL found $blocking unaccepted finding(s) — blocking merge"
             exit 1
           fi
-          set -euo pipefail
-          total=0
-          for f in sarif-results/*.sarif; do
-            count=$(jq '[.runs[].results[]] | length' "$f")
-            total=$((total + count))
-            # Print the findings, not just the count. A gate that blocks a merge
-            # while saying only "1 finding" sends whoever hit it digging through
-            # a 4000-line action log or re-running CodeQL locally to learn what
-            # it was; the SARIF right here already says.
-            jq -r '.runs[].results[]
-              | "::error::CodeQL \(.ruleId) — \(.message.text)\n    at \(.locations[0].physicalLocation.artifactLocation.uri):\(.locations[0].physicalLocation.region.startLine)"' "$f"
-          done
-          echo "CodeQL findings: $total"
-          if [ "$total" -gt 0 ]; then
-            echo "::error::CodeQL found $total finding(s) — blocking merge"
-            exit 1
-          fi
