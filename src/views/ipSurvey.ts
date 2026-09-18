@@ -41,6 +41,15 @@ const IP_SURVEY_CSS = `
     color: #eef0fb; font: inherit; font-size: 12px;
   }
   .note-input:focus { outline: 1px solid #93a5fd; }
+  .col-hint {
+    display: block; font-size: 10px; font-weight: 400; text-transform: none;
+    letter-spacing: normal; opacity: 0.6; white-space: nowrap;
+  }
+  .note-saved-hint {
+    display: inline-block; margin-left: 6px; font-size: 11px; color: #86efac;
+    opacity: 0; transition: opacity 0.3s ease;
+  }
+  .note-saved-hint.visible { opacity: 1; }
   .details-button {
     height: 26px; padding: 0 10px; border-radius: 13px;
     border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08);
@@ -244,25 +253,54 @@ const IP_SURVEY_SCRIPT = `
         }
       });
       td.appendChild(input);
+      // Empty until a save succeeds for this row; kept as a live region so a
+      // screen reader also hears the confirmation, not only sighted users.
+      var hint = el('span', '', 'note-saved-hint');
+      hint.setAttribute('data-mac', row.mac);
+      hint.setAttribute('aria-live', 'polite');
+      td.appendChild(hint);
       return td;
+    }
+
+    // Keyed by mac so a save on one row cannot cancel or clobber the fade
+    // timer of another row's confirmation.
+    var noteSavedTimers = {};
+
+    // The confirmation must appear right in the row the user was just
+    // editing -- #note-message sits far above the table and was easy to
+    // miss, which is what made a successful save read as a silent failure.
+    function flashNoteSaved(mac) {
+      var hint = tbody.querySelector('span.note-saved-hint[data-mac="' + mac + '"]');
+      if (!hint) return;
+      hint.textContent = 'Saved';
+      hint.className = 'note-saved-hint visible';
+      if (noteSavedTimers[mac]) clearTimeout(noteSavedTimers[mac]);
+      noteSavedTimers[mac] = setTimeout(function () {
+        hint.className = 'note-saved-hint';
+        hint.textContent = '';
+      }, 2000);
     }
 
     function saveNote(input, mac) {
       var loaded = input.getAttribute('data-loaded');
       var text = input.value;
       if (text === loaded) return;
-      showNoteMessage('Saving note…');
+      // Clear any earlier failure so it cannot linger next to a fresh,
+      // successful attempt.
+      showNoteMessage('');
       request('POST', '/api/survey/notes', { mac: mac, text: text }).then(function (r) {
         if (r.status !== 200) {
           var reason = r.body && r.body.error ? r.body.error : ('HTTP ' + r.status);
           showNoteMessage('Note not saved (' + reason + '). Your text is still in the box.');
           return;
         }
-        showNoteMessage('Note saved.');
         // apply() re-renders the whole table; renderRows() itself preserves
         // every note input whose text differs from what it was loaded with,
-        // not only the one that currently has focus.
+        // not only the one that currently has focus. The confirmation is
+        // flashed after that rebuild so it lands on the row's fresh cell,
+        // not one about to be discarded.
         apply(r.body);
+        flashNoteSaved(mac);
       }).catch(function (err) {
         if (err.signedOut) return;
         showNoteMessage('Note not saved (' + err.message + '). Your text is still in the box.');
@@ -504,7 +542,7 @@ export function renderIpSurveyPage(status: SurveyStatus): string {
       <h1>IP Survey</h1>
       <div class="toolbar">
         <button id="scan-button" type="button">Scan</button>
-        <button id="save-button" type="button" disabled>Save</button>
+        <button id="save-button" type="button" disabled>Save scan</button>
         <span id="scan-progress" role="status" aria-live="polite"></span>
       </div>
       <p id="survey-status-line"></p>
@@ -520,7 +558,10 @@ export function renderIpSurveyPage(status: SurveyStatus): string {
               <th data-sort-key="vendor" aria-sort="none"><button type="button">Manufacturer</button></th>
               <th data-sort-key="mac" aria-sort="none"><button type="button">MAC</button></th>
               <th data-sort-key="web" aria-sort="none"><button type="button">Web</button></th>
-              <th data-sort-key="note" aria-sort="none"><button type="button">Notes</button></th>
+              <th data-sort-key="note" aria-sort="none">
+                <button type="button" aria-describedby="notes-hint">Notes</button>
+                <span id="notes-hint" class="col-hint" aria-hidden="true">saved automatically</span>
+              </th>
               <th>Details</th>
             </tr>
           </thead>
