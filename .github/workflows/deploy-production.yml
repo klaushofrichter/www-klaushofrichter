@@ -109,7 +109,32 @@ jobs:
             || { echo "::error::scanner manifest image line did not update to ${SHA}"; exit 1; }
           kubectl set image deployment/www-scanner -n www-klaushofrichter \
             scanner="ghcr.io/klaushofrichter/www-klaushofrichter-scanner:${SHA}"
-          kubectl rollout status deployment/www-scanner -n www-klaushofrichter --timeout=120s
+          # Polled with `get`, not `kubectl rollout status`: that command does a
+          # list+watch, and RBAC ignores resourceNames for collection verbs, so
+          # a Role scoped to this one Deployment can never satisfy it. Widening
+          # the Role to list every Deployment in the namespace would be the
+          # other way out; keeping the permission narrow is worth ten lines.
+          ready=""
+          for i in $(seq 1 40); do
+            # One `get` by name, split with cut: no heredoc (its terminator
+            # cannot be indented inside a YAML block) and no pipeline into
+            # `read`, which would set the variables in a subshell.
+            status=$(kubectl get deployment www-scanner -n www-klaushofrichter \
+              -o jsonpath='{.metadata.generation} {.status.observedGeneration} {.status.updatedReplicas} {.status.availableReplicas}' 2>/dev/null || true)
+            [ -n "$status" ] || status="0 0 0 0"
+            gen=$(echo "$status" | cut -d' ' -f1)
+            obs=$(echo "$status" | cut -d' ' -f2)
+            updated=$(echo "$status" | cut -d' ' -f3)
+            avail=$(echo "$status" | cut -d' ' -f4)
+            if [ "${obs:-0}" = "${gen:-1}" ] && [ "${updated:-0}" -ge 1 ] && [ "${avail:-0}" -ge 1 ]; then
+              ready=yes
+              break
+            fi
+            echo "waiting for www-scanner (${i}/40): generation ${gen:-?}/${obs:-?}, updated ${updated:-0}, available ${avail:-0}"
+            sleep 3
+          done
+          [ -n "$ready" ] || { echo "::error::www-scanner did not become available after the image update"; exit 1; }
+          echo "www-scanner rolled to ${SHA}"
           sed -i "s|image: ghcr.io/klaushofrichter/www-klaushofrichter:.*|image: ghcr.io/klaushofrichter/www-klaushofrichter:${SHA}|" manifests/www-klaushofrichter/www-ksvc.yaml
           grep -q "image: ghcr.io/klaushofrichter/www-klaushofrichter:${SHA}$" manifests/www-klaushofrichter/www-ksvc.yaml \
             || { echo "::error::manifest image line did not update to ${SHA}"; exit 1; }
