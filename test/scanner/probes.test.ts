@@ -238,7 +238,12 @@ describe('httpGet against a real loopback server', () => {
     const elapsed = Date.now() - started;
 
     expect(info).toBeNull();
-    expect(elapsed).toBeGreaterThanOrEqual(300);
+    // Deliberately not >= 300: a timer is allowed to fire a millisecond early,
+    // and CI caught it doing exactly that (299). What this proves is that the
+    // deadline ended the request rather than the idle timer (which would have
+    // fired around 50ms) and that nothing hung, so the window is what matters,
+    // not the exact boundary.
+    expect(elapsed).toBeGreaterThanOrEqual(250);
     expect(elapsed).toBeLessThan(2000);
 
     await new Promise<void>((resolve) => server.close(() => resolve()));
