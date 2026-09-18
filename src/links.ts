@@ -238,6 +238,15 @@ export const links: Link[] = [
     requiresAuth: true,
   },
   {
+    id: 'trmnl',
+    title: 'TRMNL',
+    url: 'https://trmnl.com/dashboard',
+    abstract: 'E-ink display dashboard: playlist, plugins, and device status.',
+    gradient: 'linear-gradient(135deg, #4f46e5, #1e1b4b)',
+    cardColor: CARD_COLORS.onyx,
+    requiresAuth: true,
+  },
+  {
     id: 'instagetter',
     title: 'instagetter',
     url: 'https://insta.klaushofrichter.net',
