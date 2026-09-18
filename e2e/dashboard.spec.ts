@@ -149,23 +149,43 @@ test.describe('IP survey against the fake scanner', () => {
     // regardless of which scan (or save) preceded this test in the serial run.
     const noteInput = page.getByLabel('Note for homeassistant.local');
     await expect(noteInput).toBeVisible({ timeout: 15_000 });
+    // The confirmation lives beside the input it belongs to, not in the
+    // shared #note-message banner above the table.
+    const savedHint = page.locator('#survey-rows tr', { hasText: 'homeassistant.local' }).locator('.note-saved-hint');
 
     await noteInput.fill('kitchen tablet');
     // Blur by moving focus elsewhere, not by pressing Enter, so this also
     // covers the plain-blur save path separately from the Enter-key path.
     await page.locator('#survey-status-line').click();
-    // Note feedback has its own element, separate from #survey-message, so
-    // a scan's poll cannot blank it before the user reads it.
-    await expect(page.locator('#note-message')).toHaveText('Note saved.');
+    await expect(savedHint).toHaveText('Saved');
 
     await page.reload();
     await expect(page.getByLabel('Note for homeassistant.local')).toHaveValue('kitchen tablet');
 
     // Clean up so later tests (and re-runs) start from no note again.
     const cleanupInput = page.getByLabel('Note for homeassistant.local');
+    const cleanupHint = page.locator('#survey-rows tr', { hasText: 'homeassistant.local' }).locator('.note-saved-hint');
     await cleanupInput.fill('');
     await cleanupInput.press('Enter');
-    await expect(page.locator('#note-message')).toHaveText('Note saved.');
+    await expect(cleanupHint).toHaveText('Saved');
+  });
+
+  test('a failed note save still reports through #note-message and keeps the typed text', async ({ page }) => {
+    // #note-message is kept exactly for this case: a failure needs to
+    // persist, unlike the per-row confirmation which fades on success.
+    await page.goto('/dashboard/ip-survey');
+    const noteInput = page.getByLabel('Note for homeassistant.local');
+    await expect(noteInput).toBeVisible({ timeout: 15_000 });
+
+    await page.route('**/api/survey/notes', (route) => route.fulfill({ status: 500, json: { error: 'boom' } }));
+    await noteInput.fill('this will not save');
+    await page.locator('#survey-status-line').click();
+
+    await expect(page.locator('#note-message')).toContainText('Note not saved');
+    await expect(page.locator('#note-message')).toContainText('Your text is still in the box.');
+    await expect(noteInput).toHaveValue('this will not save');
+
+    await page.unroute('**/api/survey/notes');
   });
 
   // Regression coverage for the poll-vs-unsaved-note race: a scan takes
