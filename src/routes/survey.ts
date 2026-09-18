@@ -1,11 +1,18 @@
-import { NextFunction, Request, Response, Router } from 'express';
+import express, { NextFunction, Request, Response, Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { noStore, requireAuthApi } from '../requireAuth';
 import { ScannerBusyError, ScannerClient, ScannerUnavailableError } from '../survey/scannerClient';
-import { readSavedSurvey, writeSavedSurvey } from '../survey/store';
+import { readNotes, readSavedSurvey, writeNotes, writeSavedSurvey } from '../survey/store';
 import { ScanProgress, ScanState, SurveyStatus } from '../survey/types';
-import { buildSurveyView } from '../survey/view';
+import { buildSurveyView, macKey } from '../survey/view';
 import { appVersion } from '../version';
+
+const MAC_RE = /^([0-9a-f]{2}:){5}[0-9a-f]{2}$/i;
+const MAX_NOTE_LENGTH = 500;
+const MAX_NOTES = 1000;
+// C0 controls, DEL, and C1 controls -- matches what a hand-typed note could
+// never legitimately contain.
+const CONTROL_CHARS_RE = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g;
 
 export interface SurveyDeps {
   scanner: ScannerClient;
@@ -28,6 +35,7 @@ function toProgress(scan: ScanState): ScanProgress {
 
 export async function loadSurveyStatus(deps: SurveyDeps): Promise<SurveyStatus> {
   const saved = await readSavedSurvey(deps.surveyDir);
+  const notes = await readNotes(deps.surveyDir);
   let scan: ScanState | null = null;
   let progress: ScanProgress;
   try {
@@ -40,7 +48,7 @@ export async function loadSurveyStatus(deps: SurveyDeps): Promise<SurveyStatus> 
     progress = { state: 'unavailable' };
   }
   const finished = scan && scan.state === 'finished' ? scan.result : null;
-  return { scan: progress, view: buildSurveyView(finished, saved) };
+  return { scan: progress, view: buildSurveyView(finished, saved, notes) };
 }
 
 export function createSurveyRouter(deps: SurveyDeps): Router {
@@ -97,6 +105,48 @@ export function createSurveyRouter(deps: SurveyDeps): Router {
     }
     const now = deps.now ? deps.now() : new Date();
     await writeSavedSurvey({ ...scan.result, savedAt: now.toISOString(), version: appVersion() }, deps.surveyDir);
+    res.status(200).json(await loadSurveyStatus(deps));
+  });
+
+  // express.json() is mounted on this one route only, never on the app or
+  // the whole router: /api/survey/save relies on the app having no body
+  // parser at all so it provably cannot read a crafted request body, and
+  // that guarantee must not become accidental collateral of adding this
+  // route.
+  router.post('/api/survey/notes', express.json({ limit: '8kb' }), async (req: Request, res: Response) => {
+    const body = (req.body ?? {}) as { mac?: unknown; text?: unknown };
+    const mac = typeof body.mac === 'string' ? body.mac : '';
+    if (!MAC_RE.test(mac)) {
+      res.status(400).json({ error: 'bad-mac' });
+      return;
+    }
+    if (typeof body.text !== 'string') {
+      res.status(400).json({ error: 'bad-text' });
+      return;
+    }
+    const macLower = macKey(mac);
+    const text = body.text.replace(CONTROL_CHARS_RE, '').slice(0, MAX_NOTE_LENGTH);
+    const notes = await readNotes(deps.surveyDir);
+    const now = deps.now ? deps.now() : new Date();
+
+    if (text.trim() === '') {
+      // Empty or whitespace-only text deletes rather than storing a blank
+      // note, so there's no "empty note" state to render or clean up later.
+      if (macLower in notes) {
+        delete notes[macLower];
+        await writeNotes(notes, deps.surveyDir);
+      }
+      res.status(200).json(await loadSurveyStatus(deps));
+      return;
+    }
+
+    if (!(macLower in notes) && Object.keys(notes).length >= MAX_NOTES) {
+      res.status(400).json({ error: 'too-many-notes' });
+      return;
+    }
+
+    notes[macLower] = { text, updatedAt: now.toISOString() };
+    await writeNotes(notes, deps.surveyDir);
     res.status(200).json(await loadSurveyStatus(deps));
   });
 

@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
-import { readSavedSurvey, writeSavedSurvey } from '../src/survey/store';
-import { SavedSurvey } from '../src/survey/types';
+import { readNotes, readSavedSurvey, writeNotes, writeSavedSurvey } from '../src/survey/store';
+import { NotesStore, SavedSurvey } from '../src/survey/types';
 
 function survey(scannedAt: string): SavedSurvey {
   return {
@@ -83,5 +83,71 @@ describe('survey store', () => {
     );
 
     await expect(readSavedSurvey(dir)).rejects.toThrow(/devices/);
+  });
+});
+
+describe('notes store', () => {
+  let dir: string;
+
+  beforeEach(async () => {
+    dir = await fs.mkdtemp(path.join(os.tmpdir(), 'notes-store-'));
+  });
+
+  afterEach(async () => {
+    await fs.rm(dir, { recursive: true, force: true });
+  });
+
+  it('reads as empty when nothing has been saved, not as an error', async () => {
+    await expect(readNotes(dir)).resolves.toEqual({});
+  });
+
+  it('round-trips notes keyed by MAC', async () => {
+    const notes: NotesStore = { 'aa:bb:cc:dd:ee:ff': { text: 'kitchen printer', updatedAt: '2026-09-17T12:00:00.000Z' } };
+
+    await writeNotes(notes, dir);
+
+    await expect(readNotes(dir)).resolves.toEqual(notes);
+  });
+
+  it('creates the directory if it does not exist', async () => {
+    const nested = path.join(dir, 'a', 'b');
+
+    await writeNotes({ 'aa:bb:cc:dd:ee:ff': { text: 'x', updatedAt: 'y' } }, nested);
+
+    await expect(readNotes(nested)).resolves.not.toEqual({});
+  });
+
+  it('replaces the previous notes file and leaves no temporary files, alongside a survey file', async () => {
+    await writeNotes({ 'aa:bb:cc:dd:ee:01': { text: 'first', updatedAt: 'a' } }, dir);
+    await writeNotes({ 'aa:bb:cc:dd:ee:02': { text: 'second', updatedAt: 'b' } }, dir);
+
+    await expect(readNotes(dir)).resolves.toEqual({ 'aa:bb:cc:dd:ee:02': { text: 'second', updatedAt: 'b' } });
+    expect(await fs.readdir(dir)).toEqual(['notes.json']);
+  });
+
+  it('cleans up its temporary file when the final rename fails', async () => {
+    await fs.mkdir(path.join(dir, 'notes.json'));
+    await fs.writeFile(path.join(dir, 'notes.json', 'blocker'), 'x');
+
+    await expect(writeNotes({ 'aa:bb:cc:dd:ee:ff': { text: 'x', updatedAt: 'y' } }, dir)).rejects.toThrow();
+    expect(await fs.readdir(dir)).toEqual(['notes.json']);
+  });
+
+  it('throws on a corrupt file rather than pretending nothing was saved', async () => {
+    await fs.writeFile(path.join(dir, 'notes.json'), '{ not json');
+
+    await expect(readNotes(dir)).rejects.toThrow();
+  });
+
+  it('throws when an entry is missing text or updatedAt', async () => {
+    await fs.writeFile(path.join(dir, 'notes.json'), JSON.stringify({ 'aa:bb:cc:dd:ee:ff': { text: 'x' } }));
+
+    await expect(readNotes(dir)).rejects.toThrow(/text or updatedAt/);
+  });
+
+  it('throws when the file is an array rather than a map', async () => {
+    await fs.writeFile(path.join(dir, 'notes.json'), JSON.stringify([{ text: 'x', updatedAt: 'y' }]));
+
+    await expect(readNotes(dir)).rejects.toThrow();
   });
 });

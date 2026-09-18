@@ -54,7 +54,19 @@ export interface SurveyRow extends Device {
   // Precomputed so the browser sorts numbers instead of re-parsing addresses.
   ipNum: number;
   statusRank: number;
+  // A fact about the device, not the scan snapshot; merged in server-side
+  // from notes.json so a 'gone' row keeps its note if the device returns.
+  note: string | null;
 }
+
+// Keyed by lowercase MAC address so a note survives rescans and reappears if
+// a device comes back after being reported 'gone'.
+export interface NoteEntry {
+  text: string;
+  updatedAt: string;
+}
+
+export type NotesStore = Record<string, NoteEntry>;
 
 export interface SurveyView {
   source: 'none' | 'saved' | 'scan';

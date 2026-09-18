@@ -109,4 +109,29 @@ describe('buildSurveyView', () => {
     expect(view.source).toBe('saved');
     expect(view.unsaved).toBe(false);
   });
+
+  it('defaults every row to no note when none is given', () => {
+    const view = buildSurveyView(null, saved([device('192.168.1.2', 'aa:aa:aa:aa:aa:01')]));
+
+    expect(view.rows[0].note).toBeNull();
+  });
+
+  it('merges a note onto its device by MAC, case-insensitively', () => {
+    const view = buildSurveyView(null, saved([device('192.168.1.2', 'AA:AA:AA:AA:AA:01')]), {
+      'aa:aa:aa:aa:aa:01': { text: 'kitchen printer', updatedAt: '2026-09-17T12:00:00.000Z' },
+    });
+
+    expect(view.rows[0].note).toBe('kitchen printer');
+  });
+
+  it('keeps a note on a device that disappeared, so it comes back if the device does', () => {
+    const view = buildSurveyView(
+      scan([device('192.168.1.2', 'aa:aa:aa:aa:aa:01')]),
+      saved([device('192.168.1.2', 'aa:aa:aa:aa:aa:01'), device('192.168.1.3', 'aa:aa:aa:aa:aa:02')]),
+      { 'aa:aa:aa:aa:aa:02': { text: 'old laptop', updatedAt: '2026-09-17T12:00:00.000Z' } },
+    );
+
+    const gone = view.rows.find((row) => row.status === 'gone');
+    expect(gone?.note).toBe('old laptop');
+  });
 });

@@ -231,17 +231,18 @@ describe('httpGet against a real loopback server', () => {
 
     const started = Date.now();
     // timeoutMs is small on purpose; the drip (every 30ms) keeps beating the
-    // idle timer, so what actually bounds this call is the wall-clock
-    // deadline (Math.max(timeoutMs, 2000) * 3 = 6000ms), not the idle timer.
-    const info = await httpGet('127.0.0.1', port, 50);
+    // idle timer, so what actually bounds this call is the injected
+    // wall-clock deadline (300ms here, not the production default), not the
+    // idle timer.
+    const info = await httpGet('127.0.0.1', port, 50, 300);
     const elapsed = Date.now() - started;
 
     expect(info).toBeNull();
-    expect(elapsed).toBeGreaterThanOrEqual(5000);
-    expect(elapsed).toBeLessThan(9000);
+    expect(elapsed).toBeGreaterThanOrEqual(300);
+    expect(elapsed).toBeLessThan(2000);
 
     await new Promise<void>((resolve) => server.close(() => resolve()));
-  }, 12000);
+  }, 5000);
 });
 
 describe('probeDevices concurrency caps', () => {
