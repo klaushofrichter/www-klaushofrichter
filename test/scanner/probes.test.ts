@@ -69,6 +69,23 @@ describe('probeDevices', () => {
     expect(probed.web).toBeNull();
   });
 
+  it('issues one title fetch per device even when several web ports respond', async () => {
+    // Regression for the ~22-minute scan bug: the old code fetched a title
+    // from every open web port even though the result only ever keeps one.
+    const connect = vi.fn(async (_ip: string, port: number) => [80, 443, 8080, 8123].includes(port));
+    const get = vi.fn(async (ip: string, port: number) => ({ url: `http://${ip}:${port}`, title: `title-${port}` }));
+
+    const [probed] = await probeDevices([device('192.168.1.50')], { connect, get, timeoutMs: 10 });
+
+    expect(get).toHaveBeenCalledTimes(1);
+    // 80 is the first web port in PORTS order, so it is the one attempted.
+    expect(get).toHaveBeenCalledWith('192.168.1.50', 80, expect.any(Number));
+    expect(probed.web).toEqual({ url: 'http://192.168.1.50:80', title: 'title-80' });
+    // Every open port is still recorded, even the ones never fetched.
+    expect(probed.ports.map((p) => p.port)).toEqual([80, 443, 8080, 8123]);
+    expect(probed.ports.find((p) => p.port === 443)?.web).toBeNull();
+  });
+
   it('does not let one unreachable device fail the others', async () => {
     const connect = vi.fn(async (ip: string) => {
       if (ip === '192.168.1.9') throw new Error('EHOSTUNREACH');

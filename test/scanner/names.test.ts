@@ -7,6 +7,7 @@ import {
   cleanText,
   collectMdns,
   collectSsdp,
+  fetchUpnpDescription,
   MAX_RESPONDERS,
   mergeNames,
   parseUpnpDescription,
@@ -330,5 +331,114 @@ describe('readUpnpBody', () => {
     const text = await readUpnpBody(response);
 
     expect(text.length).toBe(64 * 1024);
+  });
+});
+
+// Critical SSRF fix: `location` comes from an unauthenticated UDP datagram on
+// a process that shares the node's network namespace. Every rejection below
+// must happen before `fetch` is ever called - these assert both the return
+// value and that no request left the process.
+describe('fetchUpnpDescription', () => {
+  const okXml = '<root><device><friendlyName>Living Room TV</friendlyName><modelName>KD-55X80J</modelName></device></root>';
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('rejects a non-HTTP scheme without calling fetch', async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await expect(fetchUpnpDescription('file:///etc/passwd', '192.168.1.10')).resolves.toEqual({ name: null, model: null });
+    await expect(fetchUpnpDescription('gopher://192.168.1.10/desc.xml', '192.168.1.10')).resolves.toEqual({
+      name: null,
+      model: null,
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('rejects a host that differs from the responder without calling fetch', async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+
+    // The classic SSRF pivot this closes: a device that announces itself
+    // from 192.168.1.10 but points LOCATION at the kubelet, the API server,
+    // or any other cluster address must not be followed.
+    await expect(fetchUpnpDescription('http://127.0.0.1:10250/desc.xml', '192.168.1.10')).resolves.toEqual({
+      name: null,
+      model: null,
+    });
+    await expect(fetchUpnpDescription('http://10.42.0.5:6443/desc.xml', '192.168.1.10')).resolves.toEqual({
+      name: null,
+      model: null,
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('rejects a location that does not parse as a URL without calling fetch', async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await expect(fetchUpnpDescription('not a url', '192.168.1.10')).resolves.toEqual({ name: null, model: null });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('follows no redirect and yields no description for a redirect response', async () => {
+    // redirect: 'manual' turns a 3xx into an opaque, not-ok response rather
+    // than letting fetch follow it - the second half of the fix, since a
+    // permitted host could otherwise still bounce the request elsewhere.
+    const fetchSpy = vi.fn(async (_url: unknown, init: RequestInit) => {
+      expect(init.redirect).toBe('manual');
+      return { ok: false, status: 0, type: 'opaqueredirect', body: null, text: async () => '' };
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await expect(fetchUpnpDescription('http://192.168.1.10/desc.xml', '192.168.1.10')).resolves.toEqual({
+      name: null,
+      model: null,
+    });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('fetches and parses the description when the host matches the responder', async () => {
+    const fetchSpy = vi.fn(async (_url: unknown, init: RequestInit) => {
+      expect(init.redirect).toBe('manual');
+      return { ok: true, body: null, text: async () => okXml };
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await expect(fetchUpnpDescription('http://192.168.1.10:1900/desc.xml', '192.168.1.10')).resolves.toEqual({
+      name: 'Living Room TV',
+      model: 'KD-55X80J',
+    });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('collectSsdp resolves collected locations even when the socket errors', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('still fetches and returns descriptions collected before the error, instead of an empty map', async () => {
+    const socket = fakeSsdpSocket();
+    const fetchDescription = vi.fn(async (_location: string, ip: string) => ({ name: `device-${ip}`, model: null }));
+
+    const collect = collectSsdp(4000, fetchDescription, () => socket as unknown as dgram.Socket);
+    const promise = collect();
+
+    socket.emit(
+      'message',
+      Buffer.from('HTTP/1.1 200 OK\r\nLOCATION: http://192.168.1.30:80/desc.xml\r\n\r\n'),
+      { address: '192.168.1.30' },
+    );
+    // The bug this guards: the socket erroring after some responses had
+    // already come in used to discard those in favour of an empty map.
+    socket.emit('error', new Error('EACCES'));
+
+    const found = await promise;
+
+    expect(fetchDescription).toHaveBeenCalledWith('http://192.168.1.30:80/desc.xml', '192.168.1.30');
+    expect(found.get('192.168.1.30')).toEqual({ name: 'device-192.168.1.30', model: null });
   });
 });

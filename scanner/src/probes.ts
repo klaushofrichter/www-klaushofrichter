@@ -141,15 +141,21 @@ export async function probeDevices(devices: Device[], options: ProbeOptions = {}
     });
     const ports: DevicePort[] = [];
     let web: WebInfo | null = null;
+    // The saved device only ever keeps one `web` entry, so once the first
+    // open web port has had its title fetch attempted, trying the rest is
+    // pure cost: up to seven sequential 6s fetches (42s) per device for a
+    // title nobody reads. One attempt per device is enough, whether or not
+    // it succeeds.
+    let titleFetchAttempted = false;
     for (const candidate of open) {
       if (!candidate) {
         continue;
       }
       let portWeb: WebInfo | null = null;
-      if (candidate.web) {
+      if (candidate.web && !titleFetchAttempted) {
+        titleFetchAttempted = true;
         portWeb = await get(device.ip, candidate.port, Math.max(timeoutMs, 2000)).catch(() => null);
-        // The first responding web port becomes the device's link.
-        web = web ?? portWeb;
+        web = portWeb;
       }
       ports.push({ port: candidate.port, service: candidate.service, web: portWeb });
     }

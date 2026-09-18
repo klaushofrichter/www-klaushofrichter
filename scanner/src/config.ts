@@ -39,14 +39,23 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ScannerConfig 
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw new Error(`SCANNER_PORT must be a port number, got ${JSON.stringify(env.SCANNER_PORT)}`);
   }
+  // The cluster bridge, not 0.0.0.0: on the host network a wildcard bind
+  // would expose this NET_RAW-capable service to every device on the LAN.
+  // Validated like the rest of this config, not trusted as a safe default,
+  // since a typo or override here is the one mistake that would do that.
+  const bindAddress = env.BIND_ADDRESS ?? '10.42.0.1';
+  if (!IPV4.test(bindAddress)) {
+    throw new Error(`BIND_ADDRESS must be a dotted IPv4 address, got ${JSON.stringify(bindAddress)}`);
+  }
+  if (bindAddress === '0.0.0.0') {
+    throw new Error('BIND_ADDRESS must not be 0.0.0.0 - it would expose this NET_RAW service to the whole LAN');
+  }
   return {
     token,
     cidr,
     iface,
     port,
-    // The cluster bridge, not 0.0.0.0: on the host network a wildcard bind
-    // would expose this to every device on the LAN.
-    bindAddress: env.BIND_ADDRESS ?? '10.42.0.1',
+    bindAddress,
     version: env.APP_VERSION ?? 'dev',
   };
 }

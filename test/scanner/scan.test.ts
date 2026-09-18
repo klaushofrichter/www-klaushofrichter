@@ -96,4 +96,55 @@ describe('createRunner', () => {
     expect(runner.getState().state).toBe('running');
     await runner.whenIdle();
   });
+
+  it('gives up with a failed state instead of reporting running forever when a stage never resolves', async () => {
+    // A stage that hangs forever (a stuck arp-scan, a name-resolution stage
+    // that never settles) is not itself cancellable, so the runner's only
+    // recourse is a hard wall-clock deadline. A short deadline stands in for
+    // the real ten-minute one.
+    const runner = createRunner(
+      config,
+      {
+        discover: async () => [],
+        names: () => new Promise<Device[]>(() => {}), // never settles
+        probe: async (d) => d,
+      },
+      20,
+    );
+
+    expect(runner.start()).toBe(true);
+    await runner.whenIdle();
+
+    const state = runner.getState();
+    expect(state.state).toBe('failed');
+    if (state.state === 'failed') {
+      expect(state.error).toMatch(/deadline/);
+    }
+    // The hung stage is still out there, but the runner has moved on and a
+    // new scan can start.
+    expect(runner.start()).toBe(true);
+  });
+
+  it('does not let a stage that eventually resolves after the deadline overwrite the failure', async () => {
+    let resolveNames: ((devices: Device[]) => void) | null = null;
+    const runner = createRunner(
+      config,
+      {
+        discover: async () => [],
+        names: () => new Promise<Device[]>((resolve) => { resolveNames = resolve; }),
+        probe: async (d) => d,
+      },
+      20,
+    );
+
+    runner.start();
+    await runner.whenIdle();
+    expect(runner.getState().state).toBe('failed');
+
+    // The stale stage finally settles well after the deadline gave up on it.
+    resolveNames?.([]);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(runner.getState().state).toBe('failed');
+  });
 });

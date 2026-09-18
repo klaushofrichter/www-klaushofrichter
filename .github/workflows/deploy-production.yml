@@ -105,6 +105,8 @@ jobs:
           # grants patch on this one Deployment by name, so it can never
           # create or replace a privileged pod spec of its own.
           sed -i "s|image: ghcr.io/klaushofrichter/www-klaushofrichter-scanner:.*|image: ghcr.io/klaushofrichter/www-klaushofrichter-scanner:${SHA}|" manifests/www-klaushofrichter/www-scanner-deployment.yaml
+          grep -q "image: ghcr.io/klaushofrichter/www-klaushofrichter-scanner:${SHA}$" manifests/www-klaushofrichter/www-scanner-deployment.yaml \
+            || { echo "::error::scanner manifest image line did not update to ${SHA}"; exit 1; }
           kubectl set image deployment/www-scanner -n www-klaushofrichter \
             scanner="ghcr.io/klaushofrichter/www-klaushofrichter-scanner:${SHA}"
           kubectl rollout status deployment/www-scanner -n www-klaushofrichter --timeout=120s
@@ -184,11 +186,29 @@ jobs:
           echo "public file listing ok"
           # The scanner has no public hostname, so this is the only place its
           # health is checked. Never starts a scan: deploys must not scan the LAN.
-          scanner=$(curl -s -o /tmp/scanner.json -w "%{http_code}" "http://10.42.0.1:9450/health")
-          [ "$scanner" = "200" ] || { echo "::error::scanner /health returned ${scanner}"; exit 1; }
-          grep -q "\"version\":\"${VERSION}\"" /tmp/scanner.json \
-            || { echo "::error::scanner reports $(cat /tmp/scanner.json), expected ${VERSION}"; exit 1; }
-          echo "scanner ok"
+          # Retried like the website's /health above: `|| true` on the curl
+          # keeps a connection-refused (the pod still coming up after its
+          # rollout, or a rolling restart mid-window) from tripping
+          # `set -euo pipefail` and exiting before the ::error:: message below
+          # ever has a chance to print.
+          scanner=""; scannerBody=""; scannerOk=""
+          for i in $(seq 1 10); do
+            scanner=$(curl -s -o /tmp/scanner.json -w "%{http_code}" "http://10.42.0.1:9450/health" || true)
+            if [ "$scanner" = "200" ]; then
+              scannerBody=$(cat /tmp/scanner.json)
+              if printf '%s' "$scannerBody" | grep -q "\"version\":\"${VERSION}\""; then
+                scannerOk=1; echo "scanner ok"; break
+              fi
+              echo "scanner reports ${scannerBody}, expected ${VERSION} (retry ${i}/10)"
+            else
+              echo "scanner /health not ready (HTTP ${scanner:-none}), retry ${i}/10"
+            fi
+            sleep 6
+          done
+          [ -n "$scannerOk" ] || {
+            echo "::error::scanner /health never reported ${VERSION} (last: HTTP ${scanner:-none}, body ${scannerBody:-none})"
+            exit 1
+          }
           # Recorded for the release notes below. The value of writing this into
           # the release is that it is evidence tied to a moment: this build
           # answered on the public URL at this timestamp. Reading it later beats

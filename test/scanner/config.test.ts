@@ -52,4 +52,18 @@ describe('loadConfig', () => {
   it('refuses an interface name that could reach a shell', () => {
     expect(() => loadConfig({ ...valid, SCAN_INTERFACE: 'eno1; rm -rf /' })).toThrow(/SCAN_INTERFACE/);
   });
+
+  it('refuses a bindAddress that is not a dotted IPv4 address', () => {
+    expect(() => loadConfig({ ...valid, BIND_ADDRESS: 'not-an-ip' })).toThrow(/BIND_ADDRESS/);
+    expect(() => loadConfig({ ...valid, BIND_ADDRESS: '999.999.999.999' })).toThrow(/BIND_ADDRESS/);
+    expect(() => loadConfig({ ...valid, BIND_ADDRESS: '::1' })).toThrow(/BIND_ADDRESS/);
+  });
+
+  // The one setting that keeps this NET_RAW-capable service off the LAN: a
+  // wildcard bind on the host network would expose it to every device that
+  // can reach the bridge, so it is rejected explicitly rather than merely
+  // failing the shape check by chance.
+  it('refuses 0.0.0.0 explicitly, since it would expose this NET_RAW service to the LAN', () => {
+    expect(() => loadConfig({ ...valid, BIND_ADDRESS: '0.0.0.0' })).toThrow(/0\.0\.0\.0/);
+  });
 });

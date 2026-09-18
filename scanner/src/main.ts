@@ -14,5 +14,12 @@ server.listen(config.port, config.bindAddress, () => {
 for (const signal of ['SIGTERM', 'SIGINT'] as const) {
   process.on(signal, () => {
     server.close(() => process.exit(0));
+    // A scan in flight keeps its connections open until every request
+    // settles, which can outlast Kubernetes' 30s grace period. With
+    // `strategy: Recreate` on a host port, the replacement pod cannot bind
+    // until this one is fully gone, so a slow close here eats into the
+    // deploy's rollout budget. Forcing the exit after a short grace period
+    // bounds that instead of trusting every open connection to finish.
+    setTimeout(() => process.exit(0), 5000).unref();
   });
 }

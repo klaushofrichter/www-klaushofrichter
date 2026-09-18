@@ -253,16 +253,24 @@ export function collectSsdp(
           locations.set(remote.address, location);
         }
       });
-      socket.on('error', () => finish(new Map()));
-      socket.bind(() => socket.send(search, 1900, '239.255.255.250'));
-      timer = setTimeout(async () => {
+      // Shared by the error path and the timeout: whatever was collected
+      // before either fired must still be resolved with fetched
+      // descriptions, not thrown away as an empty map.
+      const resolveCollected = async (): Promise<void> => {
         const found = new Map<string, { name: string | null; model: string | null }>();
         await Promise.all(
           Array.from(locations.entries()).map(async ([ip, location]) => {
-            found.set(ip, await fetchDescription(location));
+            found.set(ip, await fetchDescription(location, ip));
           }),
         );
         finish(found);
+      };
+      socket.on('error', () => {
+        void resolveCollected();
+      });
+      socket.bind(() => socket.send(search, 1900, '239.255.255.250'));
+      timer = setTimeout(() => {
+        void resolveCollected();
       }, durationMs);
     });
 }
@@ -301,9 +309,38 @@ export async function readUpnpBody(response: { body: ReadableStream<Uint8Array> 
     .toString('utf-8');
 }
 
-async function fetchUpnpDescription(location: string): Promise<{ name: string | null; model: string | null }> {
+// SSRF fix: `location` is a header value taken from an arbitrary UDP
+// datagram, so it must be validated as a URL before it is ever handed to
+// `fetch` — not merely used carefully afterward. This process runs on the
+// node's own network namespace, so an unvalidated URL here can reach the
+// kubelet, the API server, any cluster Service, or a link-local metadata
+// address, and its parsed body is persisted into the saved survey. Three
+// checks apply, all at the point the URL is accepted:
+//   - it must actually parse as a URL;
+//   - its scheme must be http or https (no file:, gopher:, etc.);
+//   - its hostname must equal `expectedHost`, the address that sent the
+//     SSDP datagram in the first place — a device may describe itself and
+//     nothing else, never point elsewhere.
+// `redirect: 'manual'` on top of that stops a permitted host from bouncing
+// the request on to somewhere that wouldn't have passed the check.
+export async function fetchUpnpDescription(
+  location: string,
+  expectedHost: string,
+): Promise<{ name: string | null; model: string | null }> {
+  let url: URL;
   try {
-    const response = await fetch(location, { signal: AbortSignal.timeout(2000) });
+    url = new URL(location);
+  } catch {
+    return { name: null, model: null };
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    return { name: null, model: null };
+  }
+  if (url.hostname !== expectedHost) {
+    return { name: null, model: null };
+  }
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(2000), redirect: 'manual' });
     if (!response.ok) {
       return { name: null, model: null };
     }
