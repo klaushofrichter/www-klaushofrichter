@@ -117,6 +117,16 @@ const IP_SURVEY_SCRIPT = `
       message.textContent = text;
     }
 
+    // Note feedback has its own element and its own show function so the
+    // 1.5s poll (which clears survey-message on every tick) cannot blank a
+    // "Note saved." or failure notice before the user has had time to read
+    // it -- saves are blur-triggered, so a scan in progress can fire this
+    // poll up to 30 times while a failure message is still on screen.
+    var noteMessage = document.getElementById('note-message');
+    function showNoteMessage(text) {
+      noteMessage.textContent = text;
+    }
+
     function sortValue(row, key) {
       if (key === 'name') return (row.name || '').toLowerCase();
       if (key === 'vendor') return (row.privateMac ? 'private address' : (row.vendor || '')).toLowerCase();
@@ -164,29 +174,52 @@ const IP_SURVEY_SCRIPT = `
       dialog.showModal();
     }
 
-    // A poll can land while the user is mid-edit on a note. Rebuilding the
-    // table would otherwise steal focus and drop whatever they had typed, so
-    // the currently focused note input's text and cursor are captured here
-    // and restored onto its replacement once the new rows exist.
-    function capturedFocus() {
+    // A poll can land while the user is mid-edit on a note, or right after a
+    // save fails: saving happens on blur, so a failed save leaves an input
+    // that is no longer focused but still holds text that was never
+    // persisted. Rebuilding the table from server state would silently drop
+    // that text, so every note input whose value differs from the value it
+    // was loaded with is captured here (not only the focused one) and
+    // restored onto its replacement once the new rows exist. Focus and
+    // cursor position are preserved only for the row actually being typed
+    // in, since only one input can be focused at a time.
+    //
+    // This does not special-case IME composition (an input mid-composition
+    // that loses focus here would restore its plain value, not the
+    // in-progress composition state) -- a known limitation, not fixed here.
+    function captureNoteState() {
+      var dirty = {};
+      var inputs = tbody.querySelectorAll('input.note-input');
+      Array.prototype.forEach.call(inputs, function (input) {
+        var loaded = input.getAttribute('data-loaded') || '';
+        if (input.value !== loaded) {
+          dirty[input.getAttribute('data-mac')] = input.value;
+        }
+      });
       var active = document.activeElement;
-      if (!active || active.tagName !== 'INPUT' || active.className.indexOf('note-input') === -1) return null;
-      return {
-        mac: active.getAttribute('data-mac'),
-        value: active.value,
-        selectionStart: active.selectionStart,
-        selectionEnd: active.selectionEnd
-      };
+      var focused = null;
+      if (active && active.tagName === 'INPUT' && active.className.indexOf('note-input') !== -1) {
+        focused = {
+          mac: active.getAttribute('data-mac'),
+          selectionStart: active.selectionStart,
+          selectionEnd: active.selectionEnd
+        };
+      }
+      return { dirty: dirty, focused: focused };
     }
 
-    function restoreFocus(captured) {
+    function restoreNoteState(captured) {
       if (!captured) return;
-      var input = tbody.querySelector('input[data-mac="' + captured.mac + '"]');
-      if (!input) return;
-      input.value = captured.value;
-      input.focus();
+      Object.keys(captured.dirty).forEach(function (mac) {
+        var input = tbody.querySelector('input[data-mac="' + mac + '"]');
+        if (input) input.value = captured.dirty[mac];
+      });
+      if (!captured.focused) return;
+      var focusedInput = tbody.querySelector('input[data-mac="' + captured.focused.mac + '"]');
+      if (!focusedInput) return;
+      focusedInput.focus();
       try {
-        input.setSelectionRange(captured.selectionStart, captured.selectionEnd);
+        focusedInput.setSelectionRange(captured.focused.selectionStart, captured.focused.selectionEnd);
       } catch (e) {
         // Some input states (e.g. mid-composition) reject setSelectionRange;
         // the value is already restored, so losing the cursor position is fine.
@@ -218,26 +251,26 @@ const IP_SURVEY_SCRIPT = `
       var loaded = input.getAttribute('data-loaded');
       var text = input.value;
       if (text === loaded) return;
-      showMessage('Saving note…');
+      showNoteMessage('Saving note…');
       request('POST', '/api/survey/notes', { mac: mac, text: text }).then(function (r) {
         if (r.status !== 200) {
           var reason = r.body && r.body.error ? r.body.error : ('HTTP ' + r.status);
-          showMessage('Note not saved (' + reason + '). Your text is still in the box.');
+          showNoteMessage('Note not saved (' + reason + '). Your text is still in the box.');
           return;
         }
-        showMessage('Note saved.');
+        showNoteMessage('Note saved.');
         // apply() re-renders the whole table; renderRows() itself preserves
-        // whichever note input (this one or another, if the user tabbed on)
-        // currently has focus.
+        // every note input whose text differs from what it was loaded with,
+        // not only the one that currently has focus.
         apply(r.body);
       }).catch(function (err) {
         if (err.signedOut) return;
-        showMessage('Note not saved (' + err.message + '). Your text is still in the box.');
+        showNoteMessage('Note not saved (' + err.message + '). Your text is still in the box.');
       });
     }
 
     function renderRows() {
-      var captured = capturedFocus();
+      var captured = captureNoteState();
       tbody.textContent = '';
       var rows = state.view.rows.slice().sort(compareRows);
       rows.forEach(function (row) {
@@ -285,7 +318,7 @@ const IP_SURVEY_SCRIPT = `
         tbody.appendChild(tr);
       });
       table.hidden = rows.length === 0;
-      restoreFocus(captured);
+      restoreNoteState(captured);
     }
 
     function renderToolbar() {
@@ -458,6 +491,7 @@ export function renderIpSurveyPage(status: SurveyStatus): string {
       </div>
       <p id="survey-status-line"></p>
       <p id="survey-message" role="alert"></p>
+      <p id="note-message" role="status" aria-live="polite"></p>
       <div class="table-wrap">
         <table id="survey-table" hidden>
           <thead>

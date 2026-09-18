@@ -285,5 +285,49 @@ describe('survey API', () => {
       expect(updated.status).toBe(200);
       expect((await readNotes(dir))[existingMac].text).toBe('updated');
     });
+
+    it('survives concurrent saves for different MACs with no lost update', async () => {
+      const macs = ['de:ad:be:ef:00:01', 'de:ad:be:ef:00:02', 'de:ad:be:ef:00:03', 'de:ad:be:ef:00:04'];
+      const app = makeApp(fakeScanner(finished));
+
+      const responses = await Promise.all(
+        macs.map((mac) => request(app)
+          .post('/api/survey/notes')
+          .set('Cookie', cookie())
+          .send({ mac, text: 'note for ' + mac })),
+      );
+
+      responses.forEach((response) => expect(response.status).toBe(200));
+      const notes = await readNotes(dir);
+      for (const mac of macs) {
+        expect(notes[mac]).toEqual({ text: 'note for ' + mac, updatedAt: NOW.toISOString() });
+      }
+    });
+
+    it('answers 400 bad-json for an unparseable body without logging its contents', async () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const response = await request(makeApp(fakeScanner(finished)))
+        .post('/api/survey/notes')
+        .set('Cookie', cookie())
+        .set('Content-Type', 'application/json')
+        .send('{ not json, super-secret-token-xyz');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'bad-json' });
+      const logged = errorSpy.mock.calls.map((call) => call.join(' ')).join('\n');
+      expect(logged).not.toContain('super-secret-token-xyz');
+      errorSpy.mockRestore();
+    });
+
+    it('answers 413 too-large for a body over the notes route limit', async () => {
+      const response = await request(makeApp(fakeScanner(finished)))
+        .post('/api/survey/notes')
+        .set('Cookie', cookie())
+        .set('Content-Type', 'application/json')
+        .send({ mac: router.mac, text: 'x'.repeat(9000) });
+
+      expect(response.status).toBe(413);
+      expect(response.body).toEqual({ error: 'too-large' });
+    });
   });
 });

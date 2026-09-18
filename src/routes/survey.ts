@@ -2,7 +2,7 @@ import express, { NextFunction, Request, Response, Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { noStore, requireAuthApi } from '../requireAuth';
 import { ScannerBusyError, ScannerClient, ScannerUnavailableError } from '../survey/scannerClient';
-import { readNotes, readSavedSurvey, writeNotes, writeSavedSurvey } from '../survey/store';
+import { readNotes, readSavedSurvey, RejectNotesUpdate, updateNotes, writeSavedSurvey } from '../survey/store';
 import { ScanProgress, ScanState, SurveyStatus } from '../survey/types';
 import { buildSurveyView, macKey } from '../survey/view';
 import { appVersion } from '../version';
@@ -126,34 +126,64 @@ export function createSurveyRouter(deps: SurveyDeps): Router {
     }
     const macLower = macKey(mac);
     const text = body.text.replace(CONTROL_CHARS_RE, '').slice(0, MAX_NOTE_LENGTH);
-    const notes = await readNotes(deps.surveyDir);
     const now = deps.now ? deps.now() : new Date();
 
-    if (text.trim() === '') {
-      // Empty or whitespace-only text deletes rather than storing a blank
-      // note, so there's no "empty note" state to render or clean up later.
-      if (macLower in notes) {
-        delete notes[macLower];
-        await writeNotes(notes, deps.surveyDir);
+    // The read-modify-write happens inside updateNotes's queue, not here, so
+    // that two requests in flight (notes save on blur, and tabbing across
+    // rows fires exactly that) can never both read the same on-disk state
+    // and clobber each other on write.
+    try {
+      await updateNotes((notes) => {
+        if (text.trim() === '') {
+          // Empty or whitespace-only text deletes rather than storing a
+          // blank note, so there's no "empty note" state to render or clean
+          // up later.
+          delete notes[macLower];
+          return;
+        }
+        if (!(macLower in notes) && Object.keys(notes).length >= MAX_NOTES) {
+          throw new RejectNotesUpdate('too-many-notes');
+        }
+        notes[macLower] = { text, updatedAt: now.toISOString() };
+      }, deps.surveyDir);
+    } catch (err) {
+      if (err instanceof RejectNotesUpdate) {
+        res.status(400).json({ error: 'too-many-notes' });
+        return;
       }
-      res.status(200).json(await loadSurveyStatus(deps));
-      return;
+      throw err;
     }
-
-    if (!(macLower in notes) && Object.keys(notes).length >= MAX_NOTES) {
-      res.status(400).json({ error: 'too-many-notes' });
-      return;
-    }
-
-    notes[macLower] = { text, updatedAt: now.toISOString() };
-    await writeNotes(notes, deps.surveyDir);
     res.status(200).json(await loadSurveyStatus(deps));
   });
 
+  interface BodyParserError extends Error {
+    type?: string;
+  }
+
+  function isBodyParserError(err: unknown): err is BodyParserError {
+    return err instanceof Error && typeof (err as BodyParserError).type === 'string';
+  }
+
   // JSON rather than Express's default HTML error page, which the browser
-  // script could not read.
+  // script could not read. A malformed or oversized body reaches here as a
+  // body-parser error (express.json() is only mounted on the notes route),
+  // and must not be reported as a generic 500 -- the browser then shows
+  // "internal", which reads like a server bug rather than a bad request.
   router.use('/api/survey', (err: unknown, _req: Request, res: Response, _next: NextFunction) => {
-    console.error('Survey API error', err);
+    if (isBodyParserError(err)) {
+      if (err.type === 'entity.too.large') {
+        res.status(413).json({ error: 'too-large' });
+        return;
+      }
+      if (err.type === 'entity.parse.failed' || err.type === 'charset.unsupported') {
+        res.status(400).json({ error: 'bad-json' });
+        return;
+      }
+    }
+    // A body-parser SyntaxError carries the raw request body as err.body;
+    // logging the error object whole would put unparsed request payloads in
+    // the logs, so only the message is logged here.
+    console.error('Survey API error', err instanceof Error ? err.message : err);
     res.status(500).json({ error: 'internal' });
   });
 

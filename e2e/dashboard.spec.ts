@@ -131,7 +131,9 @@ test.describe('IP survey against the fake scanner', () => {
     // Blur by moving focus elsewhere, not by pressing Enter, so this also
     // covers the plain-blur save path separately from the Enter-key path.
     await page.locator('#survey-status-line').click();
-    await expect(page.locator('#survey-message')).toHaveText('Note saved.');
+    // Note feedback has its own element, separate from #survey-message, so
+    // a scan's poll cannot blank it before the user reads it.
+    await expect(page.locator('#note-message')).toHaveText('Note saved.');
 
     await page.reload();
     await expect(page.getByLabel('Note for homeassistant.local')).toHaveValue('kitchen tablet');
@@ -140,7 +142,33 @@ test.describe('IP survey against the fake scanner', () => {
     const cleanupInput = page.getByLabel('Note for homeassistant.local');
     await cleanupInput.fill('');
     await cleanupInput.press('Enter');
-    await expect(page.locator('#survey-message')).toHaveText('Note saved.');
+    await expect(page.locator('#note-message')).toHaveText('Note saved.');
+  });
+
+  // Regression coverage for the poll-vs-unsaved-note race: a scan takes
+  // several poll cycles (FAKE_SCANNER_STAGE_MS * 4 stages) to finish, and
+  // each poll used to rebuild the table from server state, discarding any
+  // note text that had not yet been saved. Typing (without blurring, so
+  // nothing has been persisted yet) must survive every poll during the scan.
+  test('an in-progress note survives table rebuilds while a scan runs', async ({ page }) => {
+    await page.goto('/dashboard/ip-survey');
+    const noteInput = page.getByLabel('Note for homeassistant.local');
+    await expect(noteInput).toBeVisible({ timeout: 15_000 });
+
+    await page.locator('#scan-button').click();
+    await noteInput.fill('typed mid-scan, never blurred');
+
+    // The scan is still running (stages take FAKE_SCANNER_STAGE_MS * 4 = 1s
+    // by default) and polls every 1.5s, so this waits through at least one
+    // poll while the unsaved text sits in the box.
+    await expect(page.locator('#scan-progress')).toHaveText('', { timeout: 15_000 });
+    await expect(page.locator('#survey-status-line')).toContainText('Unsaved scan');
+    await expect(page.getByLabel('Note for homeassistant.local')).toHaveValue('typed mid-scan, never blurred');
+
+    // Clean up: don't save this text, and leave no unsaved scan for later
+    // tests to trip over.
+    await noteInput.fill('');
+    await page.reload();
   });
 
   // Reviewer follow-up from Task 8: a scan in progress that loses its session

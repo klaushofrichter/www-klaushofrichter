@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
-import { readNotes, readSavedSurvey, writeNotes, writeSavedSurvey } from '../src/survey/store';
+import { readNotes, readSavedSurvey, RejectNotesUpdate, updateNotes, writeNotes, writeSavedSurvey } from '../src/survey/store';
 import { NotesStore, SavedSurvey } from '../src/survey/types';
 
 function survey(scannedAt: string): SavedSurvey {
@@ -84,6 +84,23 @@ describe('survey store', () => {
 
     await expect(readSavedSurvey(dir)).rejects.toThrow(/devices/);
   });
+
+  it('throws on a file containing literal null rather than reading it as nothing saved', async () => {
+    await fs.writeFile(path.join(dir, 'latest.json'), 'null');
+
+    await expect(readSavedSurvey(dir)).rejects.toThrow();
+  });
+
+  it('writes concurrent saves under distinct temp names, leaving no leftovers', async () => {
+    await Promise.all([
+      writeSavedSurvey(survey('2026-09-17T12:00:00.000Z'), dir),
+      writeSavedSurvey(survey('2026-09-17T12:00:01.000Z'), dir),
+      writeSavedSurvey(survey('2026-09-17T12:00:02.000Z'), dir),
+    ]);
+
+    expect(await fs.readdir(dir)).toEqual(['latest.json']);
+    await expect(readSavedSurvey(dir)).resolves.not.toBeNull();
+  });
 });
 
 describe('notes store', () => {
@@ -149,5 +166,48 @@ describe('notes store', () => {
     await fs.writeFile(path.join(dir, 'notes.json'), JSON.stringify([{ text: 'x', updatedAt: 'y' }]));
 
     await expect(readNotes(dir)).rejects.toThrow();
+  });
+
+  it('throws on a file containing literal null rather than reading it as no notes', async () => {
+    await fs.writeFile(path.join(dir, 'notes.json'), 'null');
+
+    await expect(readNotes(dir)).rejects.toThrow();
+  });
+
+  describe('updateNotes', () => {
+    it('serializes concurrent read-modify-write updates so no update is lost', async () => {
+      await writeNotes({}, dir);
+      const macs = Array.from({ length: 10 }, (_, i) => `aa:bb:cc:dd:ee:${i.toString(16).padStart(2, '0')}`);
+
+      await Promise.all(
+        macs.map((mac) => updateNotes((notes) => {
+          notes[mac] = { text: mac, updatedAt: 'now' };
+        }, dir)),
+      );
+
+      const notes = await readNotes(dir);
+      for (const mac of macs) {
+        expect(notes[mac]).toEqual({ text: mac, updatedAt: 'now' });
+      }
+    });
+
+    it('leaves the store untouched when the mutator rejects the update, but still runs later updates', async () => {
+      await writeNotes({ 'aa:bb:cc:dd:ee:ff': { text: 'kept', updatedAt: 'y' } }, dir);
+
+      const rejected = updateNotes(() => {
+        throw new RejectNotesUpdate('nope');
+      }, dir);
+      const accepted = updateNotes((notes) => {
+        notes['aa:bb:cc:dd:ee:00'] = { text: 'new', updatedAt: 'z' };
+      }, dir);
+
+      await expect(rejected).rejects.toThrow(RejectNotesUpdate);
+      await accepted;
+
+      await expect(readNotes(dir)).resolves.toEqual({
+        'aa:bb:cc:dd:ee:ff': { text: 'kept', updatedAt: 'y' },
+        'aa:bb:cc:dd:ee:00': { text: 'new', updatedAt: 'z' },
+      });
+    });
   });
 });
