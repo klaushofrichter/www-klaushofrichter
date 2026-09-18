@@ -76,6 +76,16 @@ export const httpGet: Get = (ip, port, timeoutMs) =>
     const url = `${tls ? 'https' : 'http'}://${ip}:${port}/`;
     // Typed as https options because rejectUnauthorized only exists there;
     // http.get ignores the extra field.
+    //
+    // Accepted exception, recorded in .github/codeql-accepted.tsv: CodeQL flags
+    // js/disabling-certificate-validation here, correctly in general and
+    // deliberately in this case. These are home LAN devices, which essentially
+    // all present self-signed certificates; the request sends no credential,
+    // carries no cookie, and reads one thing - the <title> - which is rendered
+    // as text. Validating would drop the title for a Synology on 5001 or a
+    // router on 443 and gain nothing, since there is no secret to protect on
+    // this connection. The worst a LAN attacker gets is a misleading label.
+    // codeql[js/disabling-certificate-validation]
     const options: https.RequestOptions = {
       timeout: timeoutMs,
       rejectUnauthorized: false,
