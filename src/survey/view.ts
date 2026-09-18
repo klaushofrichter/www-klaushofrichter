@@ -66,6 +66,7 @@ export function buildSurveyView(
       scannedAt: finishedScan.scannedAt,
       savedAt: null,
       unsaved: true,
+      hasSaved: saved !== null,
       rows,
       counts: countRows(rows),
     };
@@ -77,9 +78,13 @@ export function buildSurveyView(
       scannedAt: saved.scannedAt,
       savedAt: saved.savedAt,
       unsaved: false,
+      hasSaved: true,
       rows,
       counts: countRows(rows),
     };
   }
-  return { source: 'none', scannedAt: null, savedAt: null, unsaved: false, rows: [], counts: { devices: 0, new: 0, gone: 0 } };
+  return {
+    source: 'none', scannedAt: null, savedAt: null, unsaved: false, hasSaved: false, rows: [],
+    counts: { devices: 0, new: 0, gone: 0 },
+  };
 }

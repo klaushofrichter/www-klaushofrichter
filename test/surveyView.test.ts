@@ -77,7 +77,8 @@ describe('compareToSaved', () => {
 describe('buildSurveyView', () => {
   it('is empty with neither a scan nor a saved survey', () => {
     expect(buildSurveyView(null, null)).toEqual({
-      source: 'none', scannedAt: null, savedAt: null, unsaved: false, rows: [], counts: { devices: 0, new: 0, gone: 0 },
+      source: 'none', scannedAt: null, savedAt: null, unsaved: false, hasSaved: false, rows: [],
+      counts: { devices: 0, new: 0, gone: 0 },
     });
   });
 
@@ -100,6 +101,14 @@ describe('buildSurveyView', () => {
     expect(view.unsaved).toBe(true);
     expect(view.scannedAt).toBe('2026-09-17T11:00:00.000Z');
     expect(view.counts).toEqual({ devices: 2, new: 1, gone: 1 });
+    expect(view.hasSaved).toBe(true);
+  });
+
+  it('flags an unsaved scan as having no baseline when nothing has ever been saved', () => {
+    const view = buildSurveyView(scan([device('192.168.1.2', 'aa:aa:aa:aa:aa:01')]), null);
+
+    expect(view.source).toBe('scan');
+    expect(view.hasSaved).toBe(false);
   });
 
   it('shows the saved survey once the finished scan has been saved', () => {

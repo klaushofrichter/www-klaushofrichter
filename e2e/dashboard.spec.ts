@@ -120,6 +120,29 @@ test.describe('IP survey against the fake scanner', () => {
     await expect(page.locator('#save-button')).toBeEnabled();
   });
 
+  test('a note is saved on blur and survives a reload', async ({ page }) => {
+    await page.goto('/dashboard/ip-survey');
+    // homeassistant.local is present in both fixtures, so it is on the page
+    // regardless of which scan (or save) preceded this test in the serial run.
+    const noteInput = page.getByLabel('Note for homeassistant.local');
+    await expect(noteInput).toBeVisible({ timeout: 15_000 });
+
+    await noteInput.fill('kitchen tablet');
+    // Blur by moving focus elsewhere, not by pressing Enter, so this also
+    // covers the plain-blur save path separately from the Enter-key path.
+    await page.locator('#survey-status-line').click();
+    await expect(page.locator('#survey-message')).toHaveText('Note saved.');
+
+    await page.reload();
+    await expect(page.getByLabel('Note for homeassistant.local')).toHaveValue('kitchen tablet');
+
+    // Clean up so later tests (and re-runs) start from no note again.
+    const cleanupInput = page.getByLabel('Note for homeassistant.local');
+    await cleanupInput.fill('');
+    await cleanupInput.press('Enter');
+    await expect(page.locator('#survey-message')).toHaveText('Note saved.');
+  });
+
   // Reviewer follow-up from Task 8: a scan in progress that loses its session
   // should bounce the page home rather than sit there showing a transport
   // error, since /api/survey now answers 401 instead of 200.

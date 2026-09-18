@@ -73,6 +73,12 @@ export interface SurveyView {
   scannedAt: string | null;
   savedAt: string | null;
   unsaved: boolean;
+  // Whether a saved survey exists at all, independent of whether this view
+  // is showing it. `source === 'scan'` always nulls out `savedAt` (the scan
+  // isn't the saved survey), so the browser status line needs this to say
+  // whether the scan was compared against a baseline or there simply isn't
+  // one yet.
+  hasSaved: boolean;
   rows: SurveyRow[];
   counts: { devices: number; new: number; gone: number };
 }
