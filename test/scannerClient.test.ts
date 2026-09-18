@@ -105,4 +105,44 @@ describe('createScannerClient', () => {
 
     await expect(client.getScan()).resolves.toEqual(finished);
   });
+
+  it('rejects a finished scan whose devices are not all well formed', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        state: 'finished',
+        result: { scannedAt: '2026-09-17T12:00:00.000Z', cidr: '192.168.1.0/24', devices: [{ ip: '192.168.1.2' }] },
+      }),
+    );
+    const client = createScannerClient({ baseUrl: 'http://scanner.test', token: 't', fetchImpl });
+
+    await expect(client.getScan()).rejects.toBeInstanceOf(ScannerUnavailableError);
+  });
+
+  it('rejects a device whose mac is not a string', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        state: 'finished',
+        result: {
+          scannedAt: '2026-09-17T12:00:00.000Z',
+          cidr: '192.168.1.0/24',
+          devices: [{ ip: '192.168.1.2', mac: 42 }],
+        },
+      }),
+    );
+    const client = createScannerClient({ baseUrl: 'http://scanner.test', token: 't', fetchImpl });
+
+    await expect(client.getScan()).rejects.toBeInstanceOf(ScannerUnavailableError);
+  });
+
+  it('accepts a finished scan whose devices carry ip and mac', async () => {
+    const result = {
+      scannedAt: '2026-09-17T12:00:00.000Z',
+      cidr: '192.168.1.0/24',
+      devices: [{ ip: '192.168.1.2', mac: 'aa:bb:cc:dd:ee:ff' }],
+    };
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(200, { state: 'finished', result }));
+    const client = createScannerClient({ baseUrl: 'http://scanner.test', token: 't', fetchImpl });
+
+    await expect(client.getScan()).resolves.toEqual({ state: 'finished', result });
+  });
 });

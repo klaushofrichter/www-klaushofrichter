@@ -1,5 +1,17 @@
 import { ScanState } from './types';
 
+// Only ip and mac are required: everything else is presentational, but these
+// two are read unguarded downstream - compareToSaved keys on mac, and a device
+// without one throws on every later request once it has been saved.
+function isDevice(value: unknown): boolean {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const device = value as { ip?: unknown; mac?: unknown };
+  return typeof device.ip === 'string' && device.ip.length > 0
+    && typeof device.mac === 'string' && device.mac.length > 0;
+}
+
 // The scanner is a separate service the website does not control, so its
 // JSON is validated at this one boundary rather than trusted by every
 // downstream consumer. Anything that doesn't match collapses to
@@ -11,7 +23,8 @@ function isScanState(value: unknown): value is ScanState {
   if (state === 'finished') {
     const result = (value as { result?: unknown }).result;
     if (typeof result !== 'object' || result === null) return false;
-    return Array.isArray((result as { devices?: unknown }).devices);
+    const devices = (result as { devices?: unknown }).devices;
+    return Array.isArray(devices) && devices.every(isDevice);
   }
   return false;
 }
