@@ -70,7 +70,15 @@ export const tcpConnect: Connect = (ip, port, timeoutMs) =>
 // Home devices almost all present self-signed certificates. This reads a page
 // title and nothing else, so accepting them costs nothing; no credential is
 // ever sent to these hosts.
-export const httpGet: Get = (ip, port, timeoutMs) =>
+// The wall-clock deadline as its own function so tests can shorten it; the
+// production default (used whenever the caller doesn't override it) stays
+// generous because a real device dribbling bytes still deserves the full
+// window before being given up on.
+export function defaultHttpDeadlineMs(timeoutMs: number): number {
+  return Math.max(timeoutMs, 2000) * 3;
+}
+
+export const httpGet = (ip: string, port: number, timeoutMs: number, deadlineMs?: number): Promise<WebInfo | null> =>
   new Promise((resolve) => {
     const tls = port === 443 || port === 8443 || port === 5001;
     const url = `${tls ? 'https' : 'http'}://${ip}:${port}/`;
@@ -105,7 +113,7 @@ export const httpGet: Get = (ip, port, timeoutMs) =>
       request.destroy();
       resolve(value);
     };
-    const deadline = setTimeout(() => finish(null), Math.max(timeoutMs, 2000) * 3);
+    const deadline = setTimeout(() => finish(null), deadlineMs ?? defaultHttpDeadlineMs(timeoutMs));
     const request = (tls ? https : http).get(url, options, (response) => {
       response.setEncoding('utf8');
       response.on('data', (chunk: string) => {

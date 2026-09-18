@@ -54,13 +54,31 @@ export interface SurveyRow extends Device {
   // Precomputed so the browser sorts numbers instead of re-parsing addresses.
   ipNum: number;
   statusRank: number;
+  // A fact about the device, not the scan snapshot; merged in server-side
+  // from notes.json so a 'gone' row keeps its note if the device returns.
+  note: string | null;
 }
+
+// Keyed by lowercase MAC address so a note survives rescans and reappears if
+// a device comes back after being reported 'gone'.
+export interface NoteEntry {
+  text: string;
+  updatedAt: string;
+}
+
+export type NotesStore = Record<string, NoteEntry>;
 
 export interface SurveyView {
   source: 'none' | 'saved' | 'scan';
   scannedAt: string | null;
   savedAt: string | null;
   unsaved: boolean;
+  // Whether a saved survey exists at all, independent of whether this view
+  // is showing it. `source === 'scan'` always nulls out `savedAt` (the scan
+  // isn't the saved survey), so the browser status line needs this to say
+  // whether the scan was compared against a baseline or there simply isn't
+  // one yet.
+  hasSaved: boolean;
   rows: SurveyRow[];
   counts: { devices: number; new: number; gone: number };
 }

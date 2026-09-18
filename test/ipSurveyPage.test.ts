@@ -12,11 +12,12 @@ const status: SurveyStatus = {
   scan: { state: 'idle' },
   view: {
     source: 'saved', scannedAt: '2026-09-17T11:00:00.000Z', savedAt: '2026-09-17T11:01:00.000Z', unsaved: false,
+    hasSaved: true,
     counts: { devices: 1, new: 0, gone: 0 },
     rows: [{
       ip: '192.168.1.9', mac: 'b8:27:eb:11:22:33', vendor: null, privateMac: false, name: hostileName,
       nameSource: 'mdns', web: null, services: [], ports: [], rttMs: 4,
-      status: 'unchanged', ipNum: 3232235785, statusRank: 1,
+      status: 'unchanged', ipNum: 3232235785, statusRank: 1, note: null,
     }],
   },
 };
@@ -88,7 +89,10 @@ describe('GET /dashboard/ip-survey', () => {
     expect(response.status).toBe(200);
     expect(extractEmbedded(response.text)).toEqual({
       scan: { state: 'idle' },
-      view: { source: 'none', scannedAt: null, savedAt: null, unsaved: false, rows: [], counts: { devices: 0, new: 0, gone: 0 } },
+      view: {
+        source: 'none', scannedAt: null, savedAt: null, unsaved: false, hasSaved: false, rows: [],
+        counts: { devices: 0, new: 0, gone: 0 },
+      },
     });
   });
 });
