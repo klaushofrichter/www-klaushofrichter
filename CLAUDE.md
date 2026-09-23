@@ -14,13 +14,21 @@ rationale lives in `docs/superpowers/specs/2026-08-20-homepage-design.md`.
 ## Branches
 
 - `main` — normal development, unprotected. Push here builds and pushes
-  `ghcr.io/klaushofrichter/www-klaushofrichter:latest` +
-  `:<sha>` via `.github/workflows/build-push.yml`, but does **not** deploy.
+  `ghcr.io/klaushofrichter/www-klaushofrichter:main` via
+  `.github/workflows/build-push.yml`, but does **not** deploy.
 - `production` — protected, PR-only from `main`. Merging here triggers
   `.github/workflows/deploy-production.yml` on the in-cluster self-hosted
-  runner, which builds/pushes the image, updates
+  runner, which builds/pushes the image as `:<sha>`, `:v<version>` and
+  `:latest`, updates
   `kube-setup/manifests/www-klaushofrichter/www-ksvc.yaml`'s image tag, and
   applies it.
+
+The deploy is the **only** writer of `:<sha>`, `:v<version>` and `:latest`.
+The ksvc pins `:<sha>`, and only the deploy's build carries `APP_VERSION`, so
+if `build-push.yml` also pushed `:<sha>`, a `main` build of the same commit
+could replace the released image under the pin whenever it finished last
+(kube-setup `docs/cluster-deployment-requirements.md`, Traps). Keep
+`build-push.yml` on `:main` only.
 
 ## Versioning and releases
 

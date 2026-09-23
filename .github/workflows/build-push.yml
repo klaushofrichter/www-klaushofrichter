@@ -36,6 +36,9 @@ jobs:
         with:
           context: .
           push: true
+          # :main only. The deploy is the sole writer of :<sha>, :v<version>
+          # and :latest: the ksvc pins :<sha>, and a main build of the same
+          # commit (no APP_VERSION) would otherwise replace the released image
+          # under that pin whenever it finished last.
           tags: |
-            ghcr.io/klaushofrichter/www-klaushofrichter:latest
-            ghcr.io/klaushofrichter/www-klaushofrichter:${{ github.sha }}
+            ghcr.io/klaushofrichter/www-klaushofrichter:main
