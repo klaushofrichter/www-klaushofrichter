@@ -75,6 +75,7 @@ jobs:
           tags: |
             ghcr.io/klaushofrichter/www-klaushofrichter:${{ github.sha }}
             ghcr.io/klaushofrichter/www-klaushofrichter:v${{ steps.ver.outputs.version }}
+            ghcr.io/klaushofrichter/www-klaushofrichter:latest
 
       - name: Build and push the scanner
         uses: docker/build-push-action@v7
