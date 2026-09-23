@@ -24,7 +24,7 @@ COPY public ./public
 # data/surveys is where the www-data PVC mounts. Created here too, so a pod
 # without the volume still starts and can save (to container storage that a
 # restart discards).
-RUN mkdir -p /app/data/images /app/data/surveys && chown -R node:node /app/data
-USER node
+RUN mkdir -p /app/data/images /app/data/surveys && chown -R 1000:1000 /app/data
+USER 1000:1000
 EXPOSE 8080
 CMD ["node", "dist/server.js"]
