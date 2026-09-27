@@ -7,3 +7,6 @@
 #
 # ruleId<TAB>path<TAB>reason
 js/disabling-certificate-validation	scanner/src/probes.ts	Home LAN devices present self-signed certificates. The scanner reads a page <title> over TLS to label a device; it sends no credential and no cookie, and the title is rendered as text. Validating would lose titles from devices like a Synology on 5001 with nothing to protect on the connection. Reviewed 2026-09-18.
+js/missing-token-validation	src/app.ts	The session cookie is SameSite=Lax, so no cross-site request carries it; requireAuthApi also refuses any non-GET whose Sec-Fetch-Site is not same-origin (403), which covers sibling *.klaushofrichter.net subdomains. The rule only recognizes token middleware (csurf and similar), and a token would add nothing to those two checks. Flagged once POST /refresh became cookie-authenticated. Reviewed 2026-09-27.
+js/missing-token-validation	test/requireAuth.test.ts	Test harness mounting cookie-parser in front of requireAuthApi; same reasoning as src/app.ts. Reviewed 2026-09-27.
+js/missing-token-validation	test/surveyApi.test.ts	Test harness mounting cookie-parser in front of the survey router; same reasoning as src/app.ts. Reviewed 2026-09-27.

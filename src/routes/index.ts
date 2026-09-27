@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import { renderPage } from '../views/page';
 import { refreshAllImages } from '../refreshImages';
-import { currentUser } from '../requireAuth';
+import { currentUser, requireAuthApi } from '../requireAuth';
 
 export const indexRouter = Router();
 
@@ -20,7 +20,11 @@ indexRouter.get('/', indexRateLimit, (req: Request, res: Response) => {
   res.status(200).type('html').send(renderPage(currentUser(req) !== null));
 });
 
-indexRouter.post('/refresh', async (_req: Request, res: Response) => {
+// Signed-in only: the button is shown only to a signed-in visitor, and the
+// daily cron already keeps the images current. Auth runs before the cooldown
+// check, so an anonymous POST can neither trigger outbound fetches nor use up
+// the owner's cooldown.
+indexRouter.post('/refresh', requireAuthApi, async (_req: Request, res: Response) => {
   const now = Date.now();
   if (now - lastRefresh < REFRESH_COOLDOWN_MS) {
     res.status(429).json({ error: 'cooldown' });

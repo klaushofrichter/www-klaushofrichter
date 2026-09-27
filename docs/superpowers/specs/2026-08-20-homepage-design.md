@@ -161,6 +161,11 @@ outcome, not an error state a user would notice.
   of reloading.
 - No auth — the cooldown is the only abuse guard, judged sufficient for a
   low-traffic personal page.
+- *Superseded (2026-09):* once Google sign-in existed, the button and the
+  route became signed-in only (`requireAuthApi`, `401` otherwise). An
+  unauthenticated endpoint that makes the server fetch third-party sites,
+  with one cooldown shared by every caller, was more exposure than the
+  daily cron made worthwhile.
 
 ### Routes summary
 

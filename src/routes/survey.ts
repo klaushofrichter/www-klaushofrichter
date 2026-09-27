@@ -62,7 +62,9 @@ export function createSurveyRouter(deps: SurveyDeps): Router {
 
   // Auth first, so unauthenticated requests are rejected before they count
   // against anyone's budget. POSTs need no CSRF token here: the session cookie
-  // is SameSite=Lax, so a cross-site POST arrives without it and gets a 401.
+  // is SameSite=Lax, so a cross-site POST arrives without it and gets a 401,
+  // and requireAuthApi refuses a same-site but cross-origin POST (a sibling
+  // subdomain) with a 403.
   router.use('/api/survey', noStore, requireAuthApi, surveyRateLimit);
 
   router.get('/api/survey', async (_req: Request, res: Response) => {

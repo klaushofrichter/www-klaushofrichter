@@ -33,9 +33,11 @@ single source of truth for all of them.
   the target site's `og:image` where available), and a footer.
 - `GET /images/:id` — serves a downloaded hero image; `404` if none was
   successfully fetched for that id.
-- `POST /refresh` — re-fetches all hero images on demand (also the small
-  ⟳ button in the page's top-right corner). Subject to a 60-second
-  cooldown; returns `429` if called again too soon.
+- `POST /refresh` — **signed-in only**: re-fetches all hero images on demand
+  (also the small ⟳ button in the page's top-right corner, which is rendered
+  only for a signed-in visitor). Returns `401` without a valid session, and
+  `429` within the 60-second cooldown. The daily 06:00 UTC job (see "Image
+  refresh") is what normally keeps images current.
 - `GET /health` — returns
   `{"status": "ok", "service": "www-klaushofrichter", "version": "2026.09.02.9"}`.
   The version is stamped into the image at deploy time (see "Versioning and
