@@ -50,11 +50,11 @@ computed from history and tags.
 
 ## Signed-in routes
 
-Anything under `/dashboard` or `/api/survey` must use `requireAuthPage` /
-`requireAuthApi` from `src/requireAuth.ts`. Hiding a link is not access
-control: the Dashboard button is omitted for signed-out visitors, but the
-routes are what actually refuse them. `currentUser` is the one definition of
-"signed in" — it re-checks `ALLOWED_EMAILS`, so use it rather than calling
+Anything under `/dashboard` or `/api/survey`, and `POST /refresh`, must use
+`requireAuthPage` / `requireAuthApi` from `src/requireAuth.ts`. Hiding a link
+is not access control: the Dashboard and ⟳ refresh buttons are omitted for
+signed-out visitors, but the routes are what actually refuse them.
+`currentUser` is the one definition of "signed in" — it re-checks `ALLOWED_EMAILS`, so use it rather than calling
 `verifySession` directly.
 
 Device data shown on the IP Survey page comes from the LAN and is untrusted.
