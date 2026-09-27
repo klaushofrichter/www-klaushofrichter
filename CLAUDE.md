@@ -54,8 +54,8 @@ Anything under `/dashboard` or `/api/survey`, and `POST /refresh`, must use
 `requireAuthPage` / `requireAuthApi` from `src/requireAuth.ts`. Hiding a link
 is not access control: the Dashboard and ⟳ refresh buttons are omitted for
 signed-out visitors, but the routes are what actually refuse them.
-`currentUser` is the one definition of "signed in" — it re-checks `ALLOWED_EMAILS`, so use it rather than calling
-`verifySession` directly.
+`currentUser` is the one definition of "signed in" — it re-checks
+`ALLOWED_EMAILS`, so use it rather than calling `verifySession` directly.
 
 Device data shown on the IP Survey page comes from the LAN and is untrusted.
 The browser script inserts it with `textContent` only; keep it that way.
