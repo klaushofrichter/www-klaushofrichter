@@ -165,7 +165,7 @@ export function renderPage(isAuthenticated: boolean): string {
     <style>${PAGE_CSS}</style>
   </head>
   <body>
-    ${renderHeaderActions({ isAuthenticated, showRefresh: true })}
+    ${renderHeaderActions({ isAuthenticated, showRefresh: isAuthenticated })}
     <div id="refresh-message"></div>
     <div class="page">
       <header class="about">
@@ -177,7 +177,10 @@ export function renderPage(isAuthenticated: boolean): string {
       </main>
       <footer class="site-footer">${escapeHtml(FOOTER_TEXT)}</footer>
     </div>
-    <script>${REFRESH_SCRIPT}${AUTH_ERROR_SCRIPT}</script>
+    <!-- The refresh script only when its button exists: signed out there is
+         no button, and a throw on the null element would stop the
+         auth-error handler sharing this <script>. -->
+    <script>${isAuthenticated ? REFRESH_SCRIPT : ''}${AUTH_ERROR_SCRIPT}</script>
   </body>
 </html>`;
 }

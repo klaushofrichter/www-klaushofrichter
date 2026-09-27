@@ -25,9 +25,23 @@ export function requireAuthPage(req: Request, res: Response, next: NextFunction)
   next();
 }
 
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
 // JSON, not a redirect: a fetch() following a redirect to the homepage would
 // get HTML back and fail somewhere far from the actual cause.
+//
+// State-changing requests must also come from this origin. The SameSite=Lax
+// session cookie already keeps other sites out, but every *.klaushofrichter.net
+// subdomain counts as the same site, so a page on any of them could still POST
+// here with the cookie attached. Browsers set Sec-Fetch-Site themselves and
+// scripts cannot forge it. A request without the header comes from no browser,
+// or from an old one, and in neither case can a cross-site page make it.
 export function requireAuthApi(req: Request, res: Response, next: NextFunction): void {
+  const fetchSite = req.get('sec-fetch-site');
+  if (!SAFE_METHODS.has(req.method) && fetchSite !== undefined && fetchSite !== 'same-origin') {
+    res.status(403).json({ error: 'cross-origin' });
+    return;
+  }
   if (!currentUser(req)) {
     res.status(401).json({ error: 'unauthorized' });
     return;

@@ -18,6 +18,13 @@ this file is where notes are written *before* a release.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** `POST /refresh` now requires a signed-in session and answers
+  `401` without one; the ⟳ refresh button is shown only to signed-in
+  visitors. Anything that called the endpoint anonymously (a script, an
+  app) stops working. Hero images still refresh on the daily 06:00 UTC job.
+
 ### Added
 
 - A signed-in **Dashboard** (button left of Logout) with an **IP Survey**

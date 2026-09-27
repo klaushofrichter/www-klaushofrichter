@@ -26,6 +26,10 @@ const mockedRefreshAllImages = vi.mocked(refreshAllImages);
 
 const gatedLinks = links.filter((link) => link.requiresAuth);
 
+function cookie(): string {
+  return `session=${signSession('allowed@example.com')}`;
+}
+
 function expectGatedCardsHidden(html: string): void {
   expect(gatedLinks.length).toBeGreaterThan(0);
   for (const link of gatedLinks) {
@@ -70,6 +74,22 @@ describe('GET /', () => {
     expect(response.text).toContain('href="/auth/google/login">Login</a>');
   });
 
+  it('omits the image refresh button and its script with no session cookie', async () => {
+    const response = await request(createApp()).get('/');
+
+    expect(response.text).not.toContain('id="refresh-button"');
+    expect(response.text).not.toContain("fetch('/refresh'");
+    // The auth-error handler shares the <script> and must survive the omission.
+    expect(response.text).toContain('auth_error');
+  });
+
+  it('renders the image refresh button with a valid session cookie', async () => {
+    const response = await request(createApp()).get('/').set('Cookie', cookie());
+
+    expect(response.text).toContain('id="refresh-button"');
+    expect(response.text).toContain("fetch('/refresh'");
+  });
+
   it('renders the auth-gated cards and a Logout link with a valid session cookie', async () => {
     const app = createApp();
     const token = signSession('allowed@example.com');
@@ -94,9 +114,20 @@ describe('POST /refresh', () => {
     mockedRefreshAllImages.mockClear();
   });
 
-  it('triggers a refresh and returns 200 on the first call', async () => {
+  // First on purpose: the cooldown is module state, and a signed-out POST
+  // must be refused before it can use it up.
+  it('returns 401 and does not refresh for a signed-out visitor', async () => {
     const app = createApp();
     const response = await request(app).post('/refresh');
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({ error: 'unauthorized' });
+    expect(mockedRefreshAllImages).not.toHaveBeenCalled();
+  });
+
+  it('triggers a refresh and returns 200 on the first signed-in call', async () => {
+    const app = createApp();
+    const response = await request(app).post('/refresh').set('Cookie', cookie());
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ status: 'ok' });
@@ -105,10 +136,10 @@ describe('POST /refresh', () => {
 
   it('returns 429 and does not refresh again within the cooldown', async () => {
     const app = createApp();
-    await request(app).post('/refresh');
+    await request(app).post('/refresh').set('Cookie', cookie());
     mockedRefreshAllImages.mockClear();
 
-    const response = await request(app).post('/refresh');
+    const response = await request(app).post('/refresh').set('Cookie', cookie());
 
     expect(response.status).toBe(429);
     expect(response.body).toEqual({ error: 'cooldown' });

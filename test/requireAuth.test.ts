@@ -14,6 +14,9 @@ function makeApp() {
   app.get('/api', requireAuthApi, (_req, res) => {
     res.json({ ok: true });
   });
+  app.post('/api', requireAuthApi, (_req, res) => {
+    res.json({ ok: true });
+  });
   app.get('/who', (req, res) => {
     res.json({ user: currentUser(req) });
   });
@@ -61,6 +64,43 @@ describe('requireAuthApi', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ ok: true });
+  });
+});
+
+describe('requireAuthApi on state-changing requests', () => {
+  it('accepts a same-origin POST', async () => {
+    const response = await request(makeApp())
+      .post('/api')
+      .set('Cookie', allowedCookie())
+      .set('Sec-Fetch-Site', 'same-origin');
+
+    expect(response.status).toBe(200);
+  });
+
+  it('accepts a POST without Sec-Fetch-Site, which no cross-site page can send', async () => {
+    const response = await request(makeApp()).post('/api').set('Cookie', allowedCookie());
+
+    expect(response.status).toBe(200);
+  });
+
+  // same-site is the case SameSite=Lax lets through: a sibling subdomain.
+  it.each(['same-site', 'cross-site', 'none'])('refuses a %s POST even with a valid session', async (site) => {
+    const response = await request(makeApp())
+      .post('/api')
+      .set('Cookie', allowedCookie())
+      .set('Sec-Fetch-Site', site);
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({ error: 'cross-origin' });
+  });
+
+  it('leaves GET alone whatever Sec-Fetch-Site says', async () => {
+    const response = await request(makeApp())
+      .get('/api')
+      .set('Cookie', allowedCookie())
+      .set('Sec-Fetch-Site', 'cross-site');
+
+    expect(response.status).toBe(200);
   });
 });
 
