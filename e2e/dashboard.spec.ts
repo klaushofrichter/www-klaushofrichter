@@ -214,7 +214,7 @@ test.describe('IP survey against the fake scanner', () => {
     await page.reload();
   });
 
-  // Reviewer follow-up from Task 8: a scan in progress that loses its session
+  // A scan in progress that loses its session
   // should bounce the page home rather than sit there showing a transport
   // error, since /api/survey now answers 401 instead of 200.
   test('losing the session mid-poll sends the page home, not an error', async ({ page, context }) => {

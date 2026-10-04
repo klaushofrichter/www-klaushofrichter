@@ -8,10 +8,6 @@ RUN npm run build
 
 FROM node:26-alpine
 WORKDIR /app
-# Stamped by the deploy so the running container can report which build it is.
-# Defaults to "dev" for local builds, which is what you want to see locally.
-ARG APP_VERSION=dev
-ENV APP_VERSION=$APP_VERSION
 ENV NODE_ENV=production
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
@@ -27,4 +23,10 @@ COPY public ./public
 RUN mkdir -p /app/data/images /app/data/surveys && chown -R 1000:1000 /app/data
 USER 1000:1000
 EXPOSE 8080
+# Stamped by the deploy so the running container can report which build it is.
+# Defaults to "dev" for local builds. Declared last: it changes on every
+# deploy and invalidates every layer after it, so placed earlier it would
+# rerun npm ci each time even with package-lock.json unchanged.
+ARG APP_VERSION=dev
+ENV APP_VERSION=$APP_VERSION
 CMD ["node", "dist/server.js"]

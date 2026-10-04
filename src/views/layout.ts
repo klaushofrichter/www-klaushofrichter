@@ -3,7 +3,8 @@ import { escapeHtml } from './escapeHtml';
 
 export const REPO_URL = 'https://github.com/klaushofrichter/www-klaushofrichter';
 
-// Shared by the homepage and the dashboard pages so the two look like one site.
+// Shared by the homepage, the dashboard pages and /public so they look like
+// one site.
 export const BASE_CSS = `
   * { box-sizing: border-box; }
   html { scrollbar-width: thin; scrollbar-color: #4b4a78 #16142b; }

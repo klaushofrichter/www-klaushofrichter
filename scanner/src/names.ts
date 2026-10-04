@@ -1,8 +1,11 @@
 import dns from 'node:dns';
 import dgram from 'node:dgram';
 import * as cheerio from 'cheerio';
-import makeMdns from 'multicast-dns';
+import makeMdns, { type MdnsResponse } from 'multicast-dns';
 import { Device, NameSource } from '../../src/survey/types';
+
+type MdnsFound = Map<string, { name: string | null; services: string[] }>;
+type SsdpFound = Map<string, { name: string | null; model: string | null }>;
 
 const MAX_TEXT = 120;
 
@@ -54,7 +57,7 @@ export function parseUpnpDescription(xml: string): { name: string | null; model:
   }
 }
 
-export interface FoundNames {
+interface FoundNames {
   mdns?: string | null;
   ssdp?: string | null;
   dns?: string | null;
@@ -80,16 +83,16 @@ export function mergeNames(device: Device, found: FoundNames): Device {
 
 export interface NameOptions {
   reverseDns(ip: string): Promise<string | null>;
-  mdns(): Promise<Map<string, { name: string | null; services: string[] }>>;
-  ssdp(): Promise<Map<string, { name: string | null; model: string | null }>>;
+  mdns(): Promise<MdnsFound>;
+  ssdp(): Promise<SsdpFound>;
 }
 
 export async function resolveNames(devices: Device[], options: NameOptions): Promise<Device[]> {
   // One broken source must not cost the whole stage: a scan with fewer names
   // is still a useful scan.
   const [mdnsResult, ssdpResult] = await Promise.all([
-    options.mdns().catch(() => new Map<string, { name: string | null; services: string[] }>()),
-    options.ssdp().catch(() => new Map<string, { name: string | null; model: string | null }>()),
+    options.mdns().catch((): MdnsFound => new Map()),
+    options.ssdp().catch((): SsdpFound => new Map()),
   ]);
   return Promise.all(
     devices.map(async (device) => {
@@ -121,16 +124,6 @@ export function reverseDnsVia(server: string): (ip: string) => Promise<string | 
   };
 }
 
-interface MdnsRecordLike {
-  name: string;
-  type: string;
-  data?: unknown;
-}
-interface MdnsResponseLike {
-  answers: MdnsRecordLike[];
-  additionals?: MdnsRecordLike[];
-}
-type MdnsFound = Map<string, { name: string | null; services: string[] }>;
 
 // A flooding or spoofing device must not be able to grow either collector's
 // map without limit for the whole collection window; a home LAN that
@@ -142,7 +135,7 @@ export const MAX_RESPONDERS = 512;
 // without touching a real socket. `address` is the responder's own address
 // (multicast-dns's `rinfo.address`), never derived from record contents, so
 // a record is only ever attributed to the device that actually sent it.
-export function applyMdnsResponse(found: MdnsFound, response: MdnsResponseLike, address: string): void {
+export function applyMdnsResponse(found: MdnsFound, response: MdnsResponse, address: string): void {
   const entry = found.get(address) ?? { name: null, services: [] };
   for (const record of [...response.answers, ...(response.additionals ?? [])]) {
     if (record.type === 'A' && typeof record.data === 'string') {
@@ -214,7 +207,7 @@ export function collectSsdp(
   durationMs = 4000,
   fetchDescription = fetchUpnpDescription,
   createSocket: () => dgram.Socket = () => dgram.createSocket({ type: 'udp4', reuseAddr: true }),
-): () => Promise<Map<string, { name: string | null; model: string | null }>> {
+): () => Promise<SsdpFound> {
   return () =>
     new Promise((resolve) => {
       const locations = new Map<string, string>();
@@ -229,7 +222,7 @@ export function collectSsdp(
       // pending timer, so the timer would later close an already-closed
       // dgram socket — which throws synchronously inside a timer callback,
       // outside any promise chain, and takes the process down.
-      const finish = (value: Map<string, { name: string | null; model: string | null }>) => {
+      const finish = (value: SsdpFound) => {
         if (settled) {
           return;
         }
@@ -257,7 +250,7 @@ export function collectSsdp(
       // before either fired must still be resolved with fetched
       // descriptions, not thrown away as an empty map.
       const resolveCollected = async (): Promise<void> => {
-        const found = new Map<string, { name: string | null; model: string | null }>();
+        const found: SsdpFound = new Map();
         await Promise.all(
           Array.from(locations.entries()).map(async ([ip, location]) => {
             found.set(ip, await fetchDescription(location, ip));

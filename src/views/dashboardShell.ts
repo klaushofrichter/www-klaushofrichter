@@ -1,7 +1,7 @@
 import { escapeHtml } from './escapeHtml';
 import { BASE_CSS, FAVICON_LINKS, HEADER_CSS, renderHeaderActions } from './layout';
 
-export interface Crumb {
+interface Crumb {
   label: string;
   href?: string;
 }

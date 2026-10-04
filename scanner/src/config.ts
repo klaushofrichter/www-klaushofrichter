@@ -13,10 +13,10 @@ export interface ScannerConfig {
 }
 
 // Built on the shared IPV4 check: shape-only would accept 999.999.999.999/99,
-// which becomes an argument to the arp-scan process this config feeds
-// (Task 3). No shell is involved, so this is not an injection risk either
-// way, but "refuses to start on bad input" is a stated constraint and this
-// is the value reaching that subprocess.
+// which becomes an argument to the arp-scan process this config feeds. No
+// shell is involved, so this is not an injection risk either way, but
+// "refuses to start on bad input" is a stated constraint and this is the
+// value reaching that subprocess.
 const CIDR = new RegExp(`^${IPV4.source.slice(1, -1)}\\/([0-9]|[12]\\d|3[0-2])$`);
 // arp-scan is spawned without a shell, but a strict interface name keeps the
 // value from being interesting if that ever changes.

@@ -1,9 +1,13 @@
 // The website <-> scanner contract, and the shapes the website sends to the
-// browser. The real scanner (a later plan) and e2e/fakeScanner.ts both
+// browser. The scanner (scanner/src) and e2e/fakeScanner.ts both
 // implement GET/POST /scan returning ScanState. Spec:
 // docs/superpowers/specs/2026-09-17-ip-survey-design.md
 
-export type ScanStage = 'discovery' | 'names' | 'ports' | 'web';
+// In the order a scan reports them. Web titles are fetched in the same pass
+// as the port check, against the ports it found open, so they are not a
+// stage of their own.
+export const SCAN_STAGES = ['discovery', 'names', 'ports'] as const;
+export type ScanStage = (typeof SCAN_STAGES)[number];
 export type NameSource = 'mdns' | 'ssdp' | 'dns';
 
 export interface WebInfo {
@@ -69,10 +73,10 @@ export interface NoteEntry {
 export type NotesStore = Record<string, NoteEntry>;
 
 export interface SurveyView {
+  // 'scan' means a finished scan that has not been saved yet.
   source: 'none' | 'saved' | 'scan';
   scannedAt: string | null;
   savedAt: string | null;
-  unsaved: boolean;
   // Whether a saved survey exists at all, independent of whether this view
   // is showing it. `source === 'scan'` always nulls out `savedAt` (the scan
   // isn't the saved survey), so the browser status line needs this to say

@@ -5,12 +5,12 @@ import request from 'supertest';
 import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
-import { signSession } from '../src/session';
 import { createSurveyRouter } from '../src/routes/survey';
 import { createApp } from '../src/app';
 import { ScannerBusyError, ScannerClient, ScannerUnavailableError } from '../src/survey/scannerClient';
 import { readNotes, readSavedSurvey, writeNotes, writeSavedSurvey } from '../src/survey/store';
 import { Device, ScanState } from '../src/survey/types';
+import { fakeScannerClient, sessionCookie } from './helpers';
 
 const NOW = new Date('2026-09-17T12:00:00.000Z');
 
@@ -23,17 +23,6 @@ const finished: ScanState = {
   state: 'finished',
   result: { scannedAt: '2026-09-17T11:59:00.000Z', cidr: '192.168.1.0/24', devices: [router] },
 };
-
-function fakeScanner(state: ScanState) {
-  return {
-    getScan: vi.fn<() => Promise<ScanState>>().mockResolvedValue(state),
-    startScan: vi.fn<() => Promise<ScanState>>().mockResolvedValue(state),
-  } satisfies ScannerClient;
-}
-
-function cookie(): string {
-  return `session=${signSession('allowed@example.com')}`;
-}
 
 describe('survey API', () => {
   let dir: string;
@@ -54,7 +43,7 @@ describe('survey API', () => {
   }
 
   it('rejects every route without a session and never reaches the scanner', async () => {
-    const scanner = fakeScanner(finished);
+    const scanner = fakeScannerClient(finished);
     const app = makeApp(scanner);
 
     expect((await request(app).get('/api/survey')).status).toBe(401);
@@ -71,7 +60,7 @@ describe('survey API', () => {
   });
 
   it('reports an idle scanner and no saved survey', async () => {
-    const response = await request(makeApp(fakeScanner({ state: 'idle' }))).get('/api/survey').set('Cookie', cookie());
+    const response = await request(makeApp(fakeScannerClient({ state: 'idle' }))).get('/api/survey').set('Cookie', sessionCookie());
 
     expect(response.status).toBe(200);
     expect(response.body.scan).toEqual({ state: 'idle' });
@@ -79,17 +68,17 @@ describe('survey API', () => {
   });
 
   it('is not cacheable, so a network inventory cannot linger in the browser', async () => {
-    const response = await request(makeApp(fakeScanner({ state: 'idle' }))).get('/api/survey').set('Cookie', cookie());
+    const response = await request(makeApp(fakeScannerClient({ state: 'idle' }))).get('/api/survey').set('Cookie', sessionCookie());
 
     expect(response.headers['cache-control']).toBe('no-store');
   });
 
   it('still shows the saved survey when the scanner is unavailable', async () => {
     await writeSavedSurvey({ ...finished.result, savedAt: '2026-09-17T12:00:00.000Z', version: 'dev' }, dir);
-    const scanner = fakeScanner({ state: 'idle' });
+    const scanner = fakeScannerClient({ state: 'idle' });
     scanner.getScan.mockRejectedValue(new ScannerUnavailableError('down'));
 
-    const response = await request(makeApp(scanner)).get('/api/survey').set('Cookie', cookie());
+    const response = await request(makeApp(scanner)).get('/api/survey').set('Cookie', sessionCookie());
 
     expect(response.status).toBe(200);
     expect(response.body.scan).toEqual({ state: 'unavailable' });
@@ -101,9 +90,9 @@ describe('survey API', () => {
     const running: ScanState = {
       state: 'running', stage: 'discovery', stageIndex: 1, stageCount: 4, startedAt: '2026-09-17T12:00:00.000Z',
     };
-    const scanner = fakeScanner(running);
+    const scanner = fakeScannerClient(running);
 
-    const response = await request(makeApp(scanner)).post('/api/survey/scan').set('Cookie', cookie());
+    const response = await request(makeApp(scanner)).post('/api/survey/scan').set('Cookie', sessionCookie());
 
     expect(response.status).toBe(202);
     expect(scanner.startScan).toHaveBeenCalledTimes(1);
@@ -111,10 +100,10 @@ describe('survey API', () => {
   });
 
   it('answers 409 with the current status when a scan is already running', async () => {
-    const scanner = fakeScanner({ state: 'running', stage: 'names', stageIndex: 2, stageCount: 4, startedAt: 'x' });
+    const scanner = fakeScannerClient({ state: 'running', stage: 'names', stageIndex: 2, stageCount: 4, startedAt: 'x' });
     scanner.startScan.mockRejectedValue(new ScannerBusyError());
 
-    const response = await request(makeApp(scanner)).post('/api/survey/scan').set('Cookie', cookie());
+    const response = await request(makeApp(scanner)).post('/api/survey/scan').set('Cookie', sessionCookie());
 
     expect(response.status).toBe(409);
     expect(response.body.error).toBe('busy');
@@ -122,11 +111,11 @@ describe('survey API', () => {
   });
 
   it('answers 503 when the scanner cannot be reached to start a scan', async () => {
-    const scanner = fakeScanner({ state: 'idle' });
+    const scanner = fakeScannerClient({ state: 'idle' });
     scanner.startScan.mockRejectedValue(new ScannerUnavailableError('down'));
     scanner.getScan.mockRejectedValue(new ScannerUnavailableError('down'));
 
-    const response = await request(makeApp(scanner)).post('/api/survey/scan').set('Cookie', cookie());
+    const response = await request(makeApp(scanner)).post('/api/survey/scan').set('Cookie', sessionCookie());
 
     expect(response.status).toBe(503);
     expect(response.body.error).toBe('scanner-unavailable');
@@ -134,11 +123,10 @@ describe('survey API', () => {
   });
 
   it('saves the scanner result with a timestamp and version', async () => {
-    const response = await request(makeApp(fakeScanner(finished))).post('/api/survey/save').set('Cookie', cookie());
+    const response = await request(makeApp(fakeScannerClient(finished))).post('/api/survey/save').set('Cookie', sessionCookie());
 
     expect(response.status).toBe(200);
     expect(response.body.view.source).toBe('saved');
-    expect(response.body.view.unsaved).toBe(false);
     expect(await readSavedSurvey(dir)).toEqual({
       ...finished.result,
       savedAt: NOW.toISOString(),
@@ -147,9 +135,9 @@ describe('survey API', () => {
   });
 
   it('saves what the scanner holds and ignores the request body', async () => {
-    await request(makeApp(fakeScanner(finished)))
+    await request(makeApp(fakeScannerClient(finished)))
       .post('/api/survey/save')
-      .set('Cookie', cookie())
+      .set('Cookie', sessionCookie())
       .set('Content-Type', 'application/json')
       .send(JSON.stringify({ devices: [{ ip: '6.6.6.6', mac: 'de:ad:be:ef:00:00' }] }));
 
@@ -157,9 +145,9 @@ describe('survey API', () => {
   });
 
   it('refuses to save when the scanner has no finished scan', async () => {
-    const scanner = fakeScanner({ state: 'running', stage: 'ports', stageIndex: 3, stageCount: 4, startedAt: 'x' });
+    const scanner = fakeScannerClient({ state: 'running', stage: 'ports', stageIndex: 3, stageCount: 4, startedAt: 'x' });
 
-    const response = await request(makeApp(scanner)).post('/api/survey/save').set('Cookie', cookie());
+    const response = await request(makeApp(scanner)).post('/api/survey/save').set('Cookie', sessionCookie());
 
     expect(response.status).toBe(409);
     expect(response.body).toEqual({ error: 'nothing-to-save' });
@@ -170,9 +158,9 @@ describe('survey API', () => {
     const blocker = path.join(dir, 'a-file');
     await fs.writeFile(blocker, 'x');
 
-    const response = await request(makeApp(fakeScanner(finished), path.join(blocker, 'surveys')))
+    const response = await request(makeApp(fakeScannerClient(finished), path.join(blocker, 'surveys')))
       .post('/api/survey/save')
-      .set('Cookie', cookie());
+      .set('Cookie', sessionCookie());
 
     expect(response.status).toBe(500);
     expect(response.body).toEqual({ error: 'internal' });
@@ -180,7 +168,7 @@ describe('survey API', () => {
 
   describe('POST /api/survey/notes', () => {
     it('requires a session', async () => {
-      const response = await request(makeApp(fakeScanner(finished)))
+      const response = await request(makeApp(fakeScannerClient(finished)))
         .post('/api/survey/notes')
         .send({ mac: router.mac, text: 'x' });
 
@@ -188,9 +176,9 @@ describe('survey API', () => {
     });
 
     it('saves a note and returns it merged into the survey status', async () => {
-      const response = await request(makeApp(fakeScanner(finished)))
+      const response = await request(makeApp(fakeScannerClient(finished)))
         .post('/api/survey/notes')
-        .set('Cookie', cookie())
+        .set('Cookie', sessionCookie())
         .send({ mac: router.mac, text: 'living room router' });
 
       expect(response.status).toBe(200);
@@ -200,18 +188,18 @@ describe('survey API', () => {
     });
 
     it('stores the MAC lowercased regardless of how it was submitted', async () => {
-      await request(makeApp(fakeScanner(finished)))
+      await request(makeApp(fakeScannerClient(finished)))
         .post('/api/survey/notes')
-        .set('Cookie', cookie())
+        .set('Cookie', sessionCookie())
         .send({ mac: router.mac.toUpperCase(), text: 'note' });
 
       expect(Object.keys(await readNotes(dir))).toEqual([router.mac]);
     });
 
     it('rejects a malformed MAC', async () => {
-      const response = await request(makeApp(fakeScanner(finished)))
+      const response = await request(makeApp(fakeScannerClient(finished)))
         .post('/api/survey/notes')
-        .set('Cookie', cookie())
+        .set('Cookie', sessionCookie())
         .send({ mac: 'not-a-mac', text: 'x' });
 
       expect(response.status).toBe(400);
@@ -220,9 +208,9 @@ describe('survey API', () => {
     });
 
     it('rejects a non-string text', async () => {
-      const response = await request(makeApp(fakeScanner(finished)))
+      const response = await request(makeApp(fakeScannerClient(finished)))
         .post('/api/survey/notes')
-        .set('Cookie', cookie())
+        .set('Cookie', sessionCookie())
         .send({ mac: router.mac, text: 42 });
 
       expect(response.status).toBe(400);
@@ -230,18 +218,18 @@ describe('survey API', () => {
     });
 
     it('caps text at 500 characters', async () => {
-      await request(makeApp(fakeScanner(finished)))
+      await request(makeApp(fakeScannerClient(finished)))
         .post('/api/survey/notes')
-        .set('Cookie', cookie())
+        .set('Cookie', sessionCookie())
         .send({ mac: router.mac, text: 'x'.repeat(600) });
 
       expect((await readNotes(dir))[router.mac].text).toHaveLength(500);
     });
 
     it('strips control characters from the text', async () => {
-      await request(makeApp(fakeScanner(finished)))
+      await request(makeApp(fakeScannerClient(finished)))
         .post('/api/survey/notes')
-        .set('Cookie', cookie())
+        .set('Cookie', sessionCookie())
         .send({ mac: router.mac, text: 'a bc' });
 
       expect((await readNotes(dir))[router.mac].text).toBe('abc');
@@ -250,9 +238,9 @@ describe('survey API', () => {
     it('deletes the note when text is empty or whitespace-only', async () => {
       await writeNotes({ [router.mac]: { text: 'old note', updatedAt: 'x' } }, dir);
 
-      const response = await request(makeApp(fakeScanner(finished)))
+      const response = await request(makeApp(fakeScannerClient(finished)))
         .post('/api/survey/notes')
-        .set('Cookie', cookie())
+        .set('Cookie', sessionCookie())
         .send({ mac: router.mac, text: '   ' });
 
       expect(response.status).toBe(200);
@@ -270,17 +258,17 @@ describe('survey API', () => {
       }
       await writeNotes(full, dir);
 
-      const rejected = await request(makeApp(fakeScanner(finished)))
+      const rejected = await request(makeApp(fakeScannerClient(finished)))
         .post('/api/survey/notes')
-        .set('Cookie', cookie())
+        .set('Cookie', sessionCookie())
         .send({ mac: router.mac, text: 'new device' });
       expect(rejected.status).toBe(400);
       expect(rejected.body).toEqual({ error: 'too-many-notes' });
 
       const existingMac = Object.keys(full)[0];
-      const updated = await request(makeApp(fakeScanner(finished)))
+      const updated = await request(makeApp(fakeScannerClient(finished)))
         .post('/api/survey/notes')
-        .set('Cookie', cookie())
+        .set('Cookie', sessionCookie())
         .send({ mac: existingMac, text: 'updated' });
       expect(updated.status).toBe(200);
       expect((await readNotes(dir))[existingMac].text).toBe('updated');
@@ -288,12 +276,12 @@ describe('survey API', () => {
 
     it('survives concurrent saves for different MACs with no lost update', async () => {
       const macs = ['de:ad:be:ef:00:01', 'de:ad:be:ef:00:02', 'de:ad:be:ef:00:03', 'de:ad:be:ef:00:04'];
-      const app = makeApp(fakeScanner(finished));
+      const app = makeApp(fakeScannerClient(finished));
 
       const responses = await Promise.all(
         macs.map((mac) => request(app)
           .post('/api/survey/notes')
-          .set('Cookie', cookie())
+          .set('Cookie', sessionCookie())
           .send({ mac, text: 'note for ' + mac })),
       );
 
@@ -306,9 +294,9 @@ describe('survey API', () => {
 
     it('answers 400 bad-json for an unparseable body without logging its contents', async () => {
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      const response = await request(makeApp(fakeScanner(finished)))
+      const response = await request(makeApp(fakeScannerClient(finished)))
         .post('/api/survey/notes')
-        .set('Cookie', cookie())
+        .set('Cookie', sessionCookie())
         .set('Content-Type', 'application/json')
         .send('{ not json, super-secret-token-xyz');
 
@@ -320,9 +308,9 @@ describe('survey API', () => {
     });
 
     it('answers 413 too-large for a body over the notes route limit', async () => {
-      const response = await request(makeApp(fakeScanner(finished)))
+      const response = await request(makeApp(fakeScannerClient(finished)))
         .post('/api/survey/notes')
-        .set('Cookie', cookie())
+        .set('Cookie', sessionCookie())
         .set('Content-Type', 'application/json')
         .send({ mac: router.mac, text: 'x'.repeat(9000) });
 

@@ -1,4 +1,4 @@
-import { Device, ScanStage, ScanState } from '../../src/survey/types';
+import { Device, SCAN_STAGES, ScanStage, ScanState } from '../../src/survey/types';
 import { ScannerConfig } from './config';
 import { discover } from './discovery';
 import { collectMdns, collectSsdp, resolveNames, reverseDnsVia } from './names';
@@ -11,18 +11,16 @@ export interface Stages {
   probe(devices: Device[]): Promise<Device[]>;
 }
 
-const STAGE_ORDER: ScanStage[] = ['discovery', 'names', 'ports', 'web'];
-
 // The stages themselves are not cancellable (arp-scan, multicast sockets and
 // TCP probes all just run to completion), so this is a hard wall-clock cap
 // on how long the runner will wait and report `running` before it gives up
 // and reports `failed` instead, freeing the next scan to start. Sized well
-// above a normal scan but far below the pathological case fix 2 targets:
-// before that fix, one slow device's web ports alone could cost up to
-// 7 ports x 6s each = 42s, and at 8 devices in flight and up to 254
+// above a normal scan but far below the pathological case of serial web
+// probes: before those ran in parallel, one slow device's web ports alone
+// could cost up to 7 ports x 6s each = 42s, and at 8 devices in flight and 254
 // addresses that is ceil(254 / 8) = ~32 waves x 42s =~ 22 minutes with
 // nothing to end it. Ten minutes is a simple, generous cap for a home LAN.
-export const SCAN_DEADLINE_MS = 10 * 60 * 1000;
+const SCAN_DEADLINE_MS = 10 * 60 * 1000;
 
 // The router is the DNS server that knows DHCP hostnames: x.x.x.1 on a home
 // network laid out the way this one is.
@@ -32,7 +30,7 @@ function routerAddress(cidr: string): string {
   return `${octets[0]}.${octets[1]}.${octets[2]}.1`;
 }
 
-export function defaultStages(config: ScannerConfig): Stages {
+function defaultStages(config: ScannerConfig): Stages {
   return {
     discover: () => discover(config),
     names: (devices) =>
@@ -41,8 +39,8 @@ export function defaultStages(config: ScannerConfig): Stages {
         mdns: collectMdns(),
         ssdp: collectSsdp(),
       }),
-    // Ports and web are one pass over the network but two reported stages:
-    // the web probes only run against ports the same pass just found open.
+    // One pass and one reported stage for ports and web titles: the web
+    // probes only run against ports the same pass just found open.
     probe: (devices) => probeDevices(devices),
   };
 }
@@ -64,8 +62,8 @@ export function createRunner(
     state = {
       state: 'running',
       stage,
-      stageIndex: STAGE_ORDER.indexOf(stage) + 1,
-      stageCount: STAGE_ORDER.length,
+      stageIndex: SCAN_STAGES.indexOf(stage) + 1,
+      stageCount: SCAN_STAGES.length,
       startedAt,
     };
   }
@@ -91,7 +89,6 @@ export function createRunner(
         return;
       }
 
-      setStage('web', startedAt);
       state = {
         state: 'finished',
         result: { scannedAt: new Date().toISOString(), cidr: config.cidr, devices: probed },
