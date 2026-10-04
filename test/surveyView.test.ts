@@ -77,7 +77,7 @@ describe('compareToSaved', () => {
 describe('buildSurveyView', () => {
   it('is empty with neither a scan nor a saved survey', () => {
     expect(buildSurveyView(null, null)).toEqual({
-      source: 'none', scannedAt: null, savedAt: null, unsaved: false, hasSaved: false, rows: [],
+      source: 'none', scannedAt: null, savedAt: null, hasSaved: false, rows: [],
       counts: { devices: 0, new: 0, gone: 0 },
     });
   });
@@ -86,7 +86,6 @@ describe('buildSurveyView', () => {
     const view = buildSurveyView(null, saved([device('192.168.1.2', 'aa:aa:aa:aa:aa:01')]));
 
     expect(view.source).toBe('saved');
-    expect(view.unsaved).toBe(false);
     expect(view.savedAt).toBe('2026-09-17T10:01:00.000Z');
     expect(view.counts).toEqual({ devices: 1, new: 0, gone: 0 });
   });
@@ -98,7 +97,6 @@ describe('buildSurveyView', () => {
     );
 
     expect(view.source).toBe('scan');
-    expect(view.unsaved).toBe(true);
     expect(view.scannedAt).toBe('2026-09-17T11:00:00.000Z');
     expect(view.counts).toEqual({ devices: 2, new: 1, gone: 1 });
     expect(view.hasSaved).toBe(true);
@@ -116,7 +114,6 @@ describe('buildSurveyView', () => {
     const view = buildSurveyView(scan(devices, '2026-09-17T11:00:00.000Z'), saved(devices, '2026-09-17T11:00:00.000Z'));
 
     expect(view.source).toBe('saved');
-    expect(view.unsaved).toBe(false);
   });
 
   it('defaults every row to no note when none is given', () => {

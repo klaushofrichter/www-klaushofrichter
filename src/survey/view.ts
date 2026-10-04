@@ -58,14 +58,14 @@ export function buildSurveyView(
   saved: SavedSurvey | null,
   notes: NotesStore = {},
 ): SurveyView {
-  // A finished scan is "unsaved" until a saved survey carries its timestamp.
+  // A finished scan is unsaved (source 'scan') until a saved survey carries
+  // its timestamp.
   if (finishedScan && (!saved || saved.scannedAt !== finishedScan.scannedAt)) {
     const rows = attachNotes(compareToSaved(finishedScan.devices, saved ? saved.devices : null), notes);
     return {
       source: 'scan',
       scannedAt: finishedScan.scannedAt,
       savedAt: null,
-      unsaved: true,
       hasSaved: saved !== null,
       rows,
       counts: countRows(rows),
@@ -77,14 +77,13 @@ export function buildSurveyView(
       source: 'saved',
       scannedAt: saved.scannedAt,
       savedAt: saved.savedAt,
-      unsaved: false,
       hasSaved: true,
       rows,
       counts: countRows(rows),
     };
   }
   return {
-    source: 'none', scannedAt: null, savedAt: null, unsaved: false, hasSaved: false, rows: [],
+    source: 'none', scannedAt: null, savedAt: null, hasSaved: false, rows: [],
     counts: { devices: 0, new: 0, gone: 0 },
   };
 }

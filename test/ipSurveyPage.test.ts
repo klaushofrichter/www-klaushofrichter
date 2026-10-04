@@ -11,7 +11,7 @@ const hostileName = '</script><script>alert(1)</script>';
 const status: SurveyStatus = {
   scan: { state: 'idle' },
   view: {
-    source: 'saved', scannedAt: '2026-09-17T11:00:00.000Z', savedAt: '2026-09-17T11:01:00.000Z', unsaved: false,
+    source: 'saved', scannedAt: '2026-09-17T11:00:00.000Z', savedAt: '2026-09-17T11:01:00.000Z',
     hasSaved: true,
     counts: { devices: 1, new: 0, gone: 0 },
     rows: [{
@@ -90,7 +90,7 @@ describe('GET /dashboard/ip-survey', () => {
     expect(extractEmbedded(response.text)).toEqual({
       scan: { state: 'idle' },
       view: {
-        source: 'none', scannedAt: null, savedAt: null, unsaved: false, hasSaved: false, rows: [],
+        source: 'none', scannedAt: null, savedAt: null, hasSaved: false, rows: [],
         counts: { devices: 0, new: 0, gone: 0 },
       },
     });

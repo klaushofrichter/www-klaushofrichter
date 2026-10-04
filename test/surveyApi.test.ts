@@ -138,7 +138,6 @@ describe('survey API', () => {
 
     expect(response.status).toBe(200);
     expect(response.body.view.source).toBe('saved');
-    expect(response.body.view.unsaved).toBe(false);
     expect(await readSavedSurvey(dir)).toEqual({
       ...finished.result,
       savedAt: NOW.toISOString(),

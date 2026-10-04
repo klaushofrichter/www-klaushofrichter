@@ -34,7 +34,7 @@ describe('createRunner', () => {
     expect(running.state).toBe('running');
     if (running.state === 'running') {
       expect(running.stage).toBe('discovery');
-      expect(running.stageCount).toBe(4);
+      expect(running.stageCount).toBe(3);
     }
 
     await runner.whenIdle();

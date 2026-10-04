@@ -22,8 +22,10 @@ function tokenMatches(presented: string, expected: string): boolean {
   return crypto.timingSafeEqual(a, b);
 }
 
-export function createServer(config: ScannerConfig, runner: ScanRunner): http.Server {
-  return http.createServer((req, res) => {
+// The request handler on its own, so e2e/fakeScanner.ts can serve the real
+// contract (auth, status codes, headers) in front of a fixture-driven runner.
+export function createHandler(config: ScannerConfig, runner: ScanRunner): http.RequestListener {
+  return (req, res) => {
     const url = new URL(req.url ?? '/', 'http://scanner');
 
     if (req.method === 'GET' && url.pathname === '/health') {
@@ -53,5 +55,9 @@ export function createServer(config: ScannerConfig, runner: ScanRunner): http.Se
       return;
     }
     send(res, 404, { error: 'not-found' });
-  });
+  };
+}
+
+export function createServer(config: ScannerConfig, runner: ScanRunner): http.Server {
+  return http.createServer(createHandler(config, runner));
 }

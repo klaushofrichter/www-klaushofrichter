@@ -1,4 +1,4 @@
-import { Device, ScanStage, ScanState } from '../../src/survey/types';
+import { Device, SCAN_STAGES, ScanStage, ScanState } from '../../src/survey/types';
 import { ScannerConfig } from './config';
 import { discover } from './discovery';
 import { collectMdns, collectSsdp, resolveNames, reverseDnsVia } from './names';
@@ -10,8 +10,6 @@ export interface Stages {
   names(devices: Device[]): Promise<Device[]>;
   probe(devices: Device[]): Promise<Device[]>;
 }
-
-const STAGE_ORDER: ScanStage[] = ['discovery', 'names', 'ports', 'web'];
 
 // The stages themselves are not cancellable (arp-scan, multicast sockets and
 // TCP probes all just run to completion), so this is a hard wall-clock cap
@@ -41,8 +39,8 @@ function defaultStages(config: ScannerConfig): Stages {
         mdns: collectMdns(),
         ssdp: collectSsdp(),
       }),
-    // Ports and web are one pass over the network but two reported stages:
-    // the web probes only run against ports the same pass just found open.
+    // One pass and one reported stage for ports and web titles: the web
+    // probes only run against ports the same pass just found open.
     probe: (devices) => probeDevices(devices),
   };
 }
@@ -64,8 +62,8 @@ export function createRunner(
     state = {
       state: 'running',
       stage,
-      stageIndex: STAGE_ORDER.indexOf(stage) + 1,
-      stageCount: STAGE_ORDER.length,
+      stageIndex: SCAN_STAGES.indexOf(stage) + 1,
+      stageCount: SCAN_STAGES.length,
       startedAt,
     };
   }
@@ -91,7 +89,6 @@ export function createRunner(
         return;
       }
 
-      setStage('web', startedAt);
       state = {
         state: 'finished',
         result: { scannedAt: new Date().toISOString(), cidr: config.cidr, devices: probed },

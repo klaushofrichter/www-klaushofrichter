@@ -75,8 +75,7 @@ const IP_SURVEY_SCRIPT = `
     var STAGE_LABELS = {
       discovery: 'finding devices',
       names: 'finding names',
-      ports: 'checking ports',
-      web: 'checking web pages'
+      ports: 'checking ports and web pages'
     };
     var POLL_MS = 1500;
     var state = JSON.parse(document.getElementById('survey-status').textContent);
@@ -113,6 +112,18 @@ const IP_SURVEY_SCRIPT = `
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
       return a;
+    }
+
+    // A table cell holding a link, or a dash when there is nothing safe to
+    // link to.
+    function linkCell(href, label) {
+      var td = el('td');
+      if (href) {
+        td.appendChild(link(href, label));
+      } else {
+        td.textContent = '—';
+      }
+      return td;
     }
 
     function formatTime(iso) {
@@ -166,14 +177,8 @@ const IP_SURVEY_SCRIPT = `
         var tr = document.createElement('tr');
         tr.appendChild(el('td', p.port, 'mono'));
         tr.appendChild(el('td', p.service));
-        var webCell = el('td');
         var href = p.web ? safeHref(p.web.url) : null;
-        if (href) {
-          webCell.appendChild(link(href, p.web.title || href));
-        } else {
-          webCell.textContent = '—';
-        }
-        tr.appendChild(webCell);
+        tr.appendChild(linkCell(href, href && (p.web.title || href)));
         ports.appendChild(tr);
       });
       document.getElementById('details-ports-table').hidden = row.ports.length === 0;
@@ -302,7 +307,6 @@ const IP_SURVEY_SCRIPT = `
         apply(r.body);
         flashNoteSaved(mac);
       }).catch(function (err) {
-        if (err.signedOut) return;
         showNoteMessage('Note not saved (' + err.message + '). Your text is still in the box.');
       });
     }
@@ -348,14 +352,7 @@ const IP_SURVEY_SCRIPT = `
         // Both forms link, matching the ports detail view below. A title is
         // the friendlier label; a bare URL is what is shown when the device
         // served no title element.
-        var webCell = el('td');
-        var webHref = row.web ? safeHref(row.web.url) : null;
-        if (webHref) {
-          webCell.appendChild(link(webHref, row.web.title || row.web.url));
-        } else {
-          webCell.textContent = '—';
-        }
-        tr.appendChild(webCell);
+        tr.appendChild(linkCell(href, href && (row.web.title || row.web.url)));
 
         tr.appendChild(noteCell(row));
 
@@ -382,7 +379,7 @@ const IP_SURVEY_SCRIPT = `
       var view = state.view;
       var running = scan.state === 'running';
       scanButton.disabled = running;
-      saveButton.disabled = running || !view.unsaved;
+      saveButton.disabled = running || view.source !== 'scan';
       if (running) {
         progress.textContent = 'Scanning ' + scan.stageIndex + ' of ' + scan.stageCount + ': ' + (STAGE_LABELS[scan.stage] || scan.stage) + '…';
       } else if (scan.state === 'unavailable') {
@@ -420,13 +417,11 @@ const IP_SURVEY_SCRIPT = `
       return fetch(url, init)
         .then(function (response) {
           if (response.status === 401) {
+            // The session ended: head home, and settle neither way, so no
+            // caller reports an error or schedules a retry while the
+            // redirect is under way.
             window.location.href = '/';
-            // Tagged so callers can tell "the session ended, a redirect is
-            // already under way" apart from a transport failure worth
-            // reporting and retrying.
-            var signedOut = new Error('signed out');
-            signedOut.signedOut = true;
-            throw signedOut;
+            return new Promise(function () {});
           }
           return response.json().catch(function () { return {}; }).then(function (body) {
             return { status: response.status, body: body };
@@ -452,7 +447,6 @@ const IP_SURVEY_SCRIPT = `
             schedulePoll();
           }
         }).catch(function (err) {
-          if (err.signedOut) return;
           showMessage('Lost track of the scan (' + err.message + '), retrying.');
           if (state.scan.state === 'running') schedulePoll();
         });
@@ -469,7 +463,6 @@ const IP_SURVEY_SCRIPT = `
         if (r.status === 503) { apply(r.body.status); showMessage('Scanner unavailable.'); return; }
         throw new Error('HTTP ' + r.status);
       }).catch(function (err) {
-        if (err.signedOut) return;
         showMessage('Could not start a scan: ' + err.message);
         renderToolbar();
       });
@@ -484,7 +477,6 @@ const IP_SURVEY_SCRIPT = `
         if (r.status === 503) { showMessage('Scanner unavailable, so its result could not be read. Nothing was saved.'); renderToolbar(); return; }
         throw new Error('HTTP ' + r.status);
       }).catch(function (err) {
-        if (err.signedOut) return;
         showMessage('Save failed (' + err.message + '). The unsaved scan is still shown.');
         renderToolbar();
       });
