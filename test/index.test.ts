@@ -21,14 +21,11 @@ import { signSession } from '../src/session';
 // stand in for "an auth-gated card" here, and when it went public these
 // assertions would have kept passing while checking nothing.
 import { links } from '../src/links';
+import { sessionCookie } from './helpers';
 
 const mockedRefreshAllImages = vi.mocked(refreshAllImages);
 
 const gatedLinks = links.filter((link) => link.requiresAuth);
-
-function cookie(): string {
-  return `session=${signSession('allowed@example.com')}`;
-}
 
 function expectGatedCardsHidden(html: string): void {
   expect(gatedLinks.length).toBeGreaterThan(0);
@@ -84,7 +81,7 @@ describe('GET /', () => {
   });
 
   it('renders the image refresh button with a valid session cookie', async () => {
-    const response = await request(createApp()).get('/').set('Cookie', cookie());
+    const response = await request(createApp()).get('/').set('Cookie', sessionCookie());
 
     expect(response.text).toContain('id="refresh-button"');
     expect(response.text).toContain("fetch('/refresh'");
@@ -127,7 +124,7 @@ describe('POST /refresh', () => {
 
   it('triggers a refresh and returns 200 on the first signed-in call', async () => {
     const app = createApp();
-    const response = await request(app).post('/refresh').set('Cookie', cookie());
+    const response = await request(app).post('/refresh').set('Cookie', sessionCookie());
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ status: 'ok' });
@@ -136,10 +133,10 @@ describe('POST /refresh', () => {
 
   it('returns 429 and does not refresh again within the cooldown', async () => {
     const app = createApp();
-    await request(app).post('/refresh').set('Cookie', cookie());
+    await request(app).post('/refresh').set('Cookie', sessionCookie());
     mockedRefreshAllImages.mockClear();
 
-    const response = await request(app).post('/refresh').set('Cookie', cookie());
+    const response = await request(app).post('/refresh').set('Cookie', sessionCookie());
 
     expect(response.status).toBe(429);
     expect(response.body).toEqual({ error: 'cooldown' });

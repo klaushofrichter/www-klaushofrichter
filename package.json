@@ -10,6 +10,7 @@
     "start": "node dist/server.js",
     "dev": "tsx --env-file=.env src/server.ts",
     "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.check.json",
     "test:e2e": "playwright test",
     "fake-scanner": "tsx --env-file=.env e2e/fakeScanner.ts"
   },

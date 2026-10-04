@@ -2,17 +2,11 @@ import { describe, it, expect, vi } from 'vitest';
 import { createRunner } from '../../scanner/src/scan';
 import { ScannerConfig } from '../../scanner/src/config';
 import { Device } from '../../src/survey/types';
+import { makeDevice } from '../helpers';
 
 const config: ScannerConfig = {
   token: 't', cidr: '192.168.1.0/24', iface: 'eno1', bindAddress: '127.0.0.1', port: 9450, version: 'test',
 };
-
-function device(ip: string): Device {
-  return {
-    ip, mac: 'aa:bb:cc:dd:ee:01', vendor: null, privateMac: false, name: null, nameSource: null,
-    web: null, services: [], ports: [], rttMs: null,
-  };
-}
 
 describe('createRunner', () => {
   it('starts idle', () => {
@@ -23,7 +17,7 @@ describe('createRunner', () => {
 
   it('reports each stage and finishes with the devices', async () => {
     const stages = {
-      discover: vi.fn(async () => [device('192.168.1.50')]),
+      discover: vi.fn(async () => [makeDevice('192.168.1.50')]),
       names: vi.fn(async (d: Device[]) => d.map((x) => ({ ...x, name: 'ha' }))),
       probe: vi.fn(async (d: Device[]) => d),
     };
@@ -85,7 +79,7 @@ describe('createRunner', () => {
 
   it('keeps the last finished result until the next scan starts', async () => {
     const runner = createRunner(config, {
-      discover: async () => [device('192.168.1.2')], names: async (d) => d, probe: async (d) => d,
+      discover: async () => [makeDevice('192.168.1.2')], names: async (d) => d, probe: async (d) => d,
     });
 
     runner.start();
@@ -126,7 +120,9 @@ describe('createRunner', () => {
   });
 
   it('does not let a stage that eventually resolves after the deadline overwrite the failure', async () => {
-    let resolveNames: ((devices: Device[]) => void) | null = null;
+    // Asserted, not annotated: assigned only inside a callback, so a plain
+    // annotation narrows to null and the call below would not type-check.
+    let resolveNames = null as ((devices: Device[]) => void) | null;
     const runner = createRunner(
       config,
       {

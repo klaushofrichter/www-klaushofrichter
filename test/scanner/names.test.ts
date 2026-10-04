@@ -16,13 +16,7 @@ import {
   serviceLabel,
 } from '../../scanner/src/names';
 import { Device } from '../../src/survey/types';
-
-function device(ip: string, mac: string): Device {
-  return {
-    ip, mac, vendor: null, privateMac: false, name: null, nameSource: null,
-    web: null, services: [], ports: [], rttMs: null,
-  };
-}
+import { makeDevice } from '../helpers';
 
 describe('cleanText', () => {
   it('trims and caps long values', () => {
@@ -73,7 +67,7 @@ describe('parseUpnpDescription', () => {
 });
 
 describe('mergeNames', () => {
-  const base = device('192.168.1.50', 'aa:bb:cc:dd:ee:01');
+  const base = makeDevice('192.168.1.50', 'aa:bb:cc:dd:ee:01');
 
   it('prefers mDNS over SSDP and DNS', () => {
     const merged = mergeNames(base, { mdns: 'homeassistant.local', ssdp: 'Home Assistant', dns: 'ha' });
@@ -143,7 +137,7 @@ describe('applyMdnsResponse', () => {
 
 describe('resolveNames', () => {
   it('asks every source and merges the answers', async () => {
-    const devices = [device('192.168.1.50', 'aa:bb:cc:dd:ee:01'), device('192.168.1.60', 'aa:bb:cc:dd:ee:02')];
+    const devices = [makeDevice('192.168.1.50', 'aa:bb:cc:dd:ee:01'), makeDevice('192.168.1.60', 'aa:bb:cc:dd:ee:02')];
 
     const named = await resolveNames(devices, {
       reverseDns: async (ip) => (ip === '192.168.1.50' ? 'ha' : null),
@@ -159,7 +153,7 @@ describe('resolveNames', () => {
   });
 
   it('keeps going when a source fails outright', async () => {
-    const devices = [device('192.168.1.50', 'aa:bb:cc:dd:ee:01')];
+    const devices = [makeDevice('192.168.1.50', 'aa:bb:cc:dd:ee:01')];
 
     const named = await resolveNames(devices, {
       reverseDns: async () => 'ha',

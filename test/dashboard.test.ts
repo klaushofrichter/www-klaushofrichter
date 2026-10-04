@@ -1,11 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../src/app';
-import { signSession } from '../src/session';
-
-function cookie(): string {
-  return `session=${signSession('allowed@example.com')}`;
-}
+import { sessionCookie } from './helpers';
 
 describe('GET /dashboard', () => {
   it('redirects a signed-out visitor to the cards', async () => {
@@ -16,7 +12,7 @@ describe('GET /dashboard', () => {
   });
 
   it('renders the dashboard for a signed-in user', async () => {
-    const response = await request(createApp()).get('/dashboard').set('Cookie', cookie());
+    const response = await request(createApp()).get('/dashboard').set('Cookie', sessionCookie());
 
     expect(response.status).toBe(200);
     expect(response.text).toContain('<h1>Dashboard</h1>');
@@ -25,7 +21,7 @@ describe('GET /dashboard', () => {
   });
 
   it('keeps the signed-in header but drops the image refresh button', async () => {
-    const response = await request(createApp()).get('/dashboard').set('Cookie', cookie());
+    const response = await request(createApp()).get('/dashboard').set('Cookie', sessionCookie());
 
     expect(response.text).toContain('id="dashboard-button"');
     expect(response.text).toContain('<a id="auth-button" href="/auth/logout">Logout</a>');
@@ -34,13 +30,13 @@ describe('GET /dashboard', () => {
   });
 
   it('asks search engines not to index it', async () => {
-    const response = await request(createApp()).get('/dashboard').set('Cookie', cookie());
+    const response = await request(createApp()).get('/dashboard').set('Cookie', sessionCookie());
 
     expect(response.text).toContain('<meta name="robots" content="noindex" />');
   });
 
   it('is not cacheable, so it cannot linger in the browser after logout', async () => {
-    const response = await request(createApp()).get('/dashboard').set('Cookie', cookie());
+    const response = await request(createApp()).get('/dashboard').set('Cookie', sessionCookie());
 
     expect(response.headers['cache-control']).toBe('no-store');
   });
