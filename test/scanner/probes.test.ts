@@ -114,9 +114,9 @@ describe('probeDevices', () => {
 
     // All three open web ports were fetched together, not stopped after 80.
     expect(get).toHaveBeenCalledTimes(3);
-    expect(get).toHaveBeenCalledWith('192.168.1.50', 80, expect.any(Number));
-    expect(get).toHaveBeenCalledWith('192.168.1.50', 443, expect.any(Number));
-    expect(get).toHaveBeenCalledWith('192.168.1.50', 8123, expect.any(Number));
+    expect(get).toHaveBeenCalledWith('192.168.1.50', 80, expect.any(Number), 'http');
+    expect(get).toHaveBeenCalledWith('192.168.1.50', 443, expect.any(Number), 'https');
+    expect(get).toHaveBeenCalledWith('192.168.1.50', 8123, expect.any(Number), 'http');
     // 443 is the first port (in PORTS order) with a non-null result.
     expect(probed.web).toEqual({ url: 'http://192.168.1.50:443', title: 'title-443' });
     expect(probed.ports.find((p) => p.port === 80)?.web).toBeNull();
@@ -234,7 +234,7 @@ describe('httpGet against a real loopback server', () => {
     // idle timer, so what actually bounds this call is the injected
     // wall-clock deadline (300ms here, not the production default), not the
     // idle timer.
-    const info = await httpGet('127.0.0.1', port, 50, 300);
+    const info = await httpGet('127.0.0.1', port, 50, 'http', 300);
     const elapsed = Date.now() - started;
 
     expect(info).toBeNull();

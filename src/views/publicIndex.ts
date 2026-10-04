@@ -1,18 +1,11 @@
 import { PublicFile, formatSize } from '../publicFiles';
 import { escapeHtml } from './escapeHtml';
+import { BASE_CSS, FAVICON_LINKS } from './layout';
 
 const TITLE = 'Public files';
 const INTRO = 'Files published alongside the site. Pick one to download.';
 
-const CSS = `
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: linear-gradient(160deg, #0f0c29, #1b1740, #24243e);
-    color: #eef0fb;
-    min-height: 100vh;
-  }
+const CSS = `${BASE_CSS}
   .page { padding: 40px 5%; max-width: 720px; margin: 0 auto; }
   h1 { font-size: 26px; margin: 0 0 10px; }
   .intro { font-size: 14px; line-height: 1.6; opacity: 0.75; margin: 0 0 28px; }
@@ -67,9 +60,7 @@ export function renderPublicIndex(files: PublicFile[]): string {
     <meta name="description" content="${escapeHtml(INTRO)}" />
     <!-- A file index is not something to surface in search results. -->
     <meta name="robots" content="noindex" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png" />
+    ${FAVICON_LINKS}
     <style>${CSS}</style>
   </head>
   <body>
