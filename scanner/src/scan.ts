@@ -17,12 +17,12 @@ const STAGE_ORDER: ScanStage[] = ['discovery', 'names', 'ports', 'web'];
 // TCP probes all just run to completion), so this is a hard wall-clock cap
 // on how long the runner will wait and report `running` before it gives up
 // and reports `failed` instead, freeing the next scan to start. Sized well
-// above a normal scan but far below the pathological case fix 2 targets:
-// before that fix, one slow device's web ports alone could cost up to
-// 7 ports x 6s each = 42s, and at 8 devices in flight and up to 254
+// above a normal scan but far below the pathological case of serial web
+// probes: before those ran in parallel, one slow device's web ports alone
+// could cost up to 7 ports x 6s each = 42s, and at 8 devices in flight and 254
 // addresses that is ceil(254 / 8) = ~32 waves x 42s =~ 22 minutes with
 // nothing to end it. Ten minutes is a simple, generous cap for a home LAN.
-export const SCAN_DEADLINE_MS = 10 * 60 * 1000;
+const SCAN_DEADLINE_MS = 10 * 60 * 1000;
 
 // The router is the DNS server that knows DHCP hostnames: x.x.x.1 on a home
 // network laid out the way this one is.
@@ -32,7 +32,7 @@ function routerAddress(cidr: string): string {
   return `${octets[0]}.${octets[1]}.${octets[2]}.1`;
 }
 
-export function defaultStages(config: ScannerConfig): Stages {
+function defaultStages(config: ScannerConfig): Stages {
   return {
     discover: () => discover(config),
     names: (devices) =>

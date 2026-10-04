@@ -54,7 +54,7 @@ export function parseUpnpDescription(xml: string): { name: string | null; model:
   }
 }
 
-export interface FoundNames {
+interface FoundNames {
   mdns?: string | null;
   ssdp?: string | null;
   dns?: string | null;

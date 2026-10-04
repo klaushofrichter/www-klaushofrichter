@@ -5,7 +5,7 @@ import { links } from './links';
 import { fetchOgImage, downloadImage } from './ogImage';
 import { hasStaticCard } from './staticCards';
 
-export const IMAGES_DIR = path.join(process.cwd(), 'data', 'images');
+const IMAGES_DIR = path.join(process.cwd(), 'data', 'images');
 const DAILY_CRON_SCHEDULE = '0 6 * * *';
 
 const imageContentTypes = new Map<string, string>();

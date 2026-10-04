@@ -1,5 +1,5 @@
 import express, { NextFunction, Request, Response, Router } from 'express';
-import rateLimit from 'express-rate-limit';
+import { perWindow } from '../rateLimit';
 import { noStore, requireAuthApi } from '../requireAuth';
 import { ScannerBusyError, ScannerClient, ScannerUnavailableError } from '../survey/scannerClient';
 import { readNotes, readSavedSurvey, RejectNotesUpdate, updateNotes, writeSavedSurvey } from '../survey/store';
@@ -33,32 +33,40 @@ function toProgress(scan: ScanState): ScanProgress {
   }
 }
 
-export async function loadSurveyStatus(deps: SurveyDeps): Promise<SurveyStatus> {
-  const saved = await readSavedSurvey(deps.surveyDir);
-  const notes = await readNotes(deps.surveyDir);
-  let scan: ScanState | null = null;
-  let progress: ScanProgress;
+async function fetchScan(scanner: ScannerClient): Promise<ScanState | 'unavailable'> {
   try {
-    scan = await deps.scanner.getScan();
-    progress = toProgress(scan);
+    return await scanner.getScan();
   } catch (err) {
     if (!(err instanceof ScannerUnavailableError)) {
       throw err;
     }
-    progress = { state: 'unavailable' };
+    return 'unavailable';
   }
-  const finished = scan && scan.state === 'finished' ? scan.result : null;
-  return { scan: progress, view: buildSurveyView(finished, saved, notes) };
+}
+
+// `known` is a scan state the caller already holds (or knows to be
+// unavailable), so a route that has just talked to the scanner does not ask it
+// again -- with the scanner down, that second call would double the wait.
+export async function loadSurveyStatus(
+  deps: SurveyDeps,
+  known?: ScanState | 'unavailable',
+): Promise<SurveyStatus> {
+  const [saved, notes, scan] = await Promise.all([
+    readSavedSurvey(deps.surveyDir),
+    readNotes(deps.surveyDir),
+    known ?? fetchScan(deps.scanner),
+  ]);
+  if (scan === 'unavailable') {
+    return { scan: { state: 'unavailable' }, view: buildSurveyView(null, saved, notes) };
+  }
+  const finished = scan.state === 'finished' ? scan.result : null;
+  return { scan: toProgress(scan), view: buildSurveyView(finished, saved, notes) };
 }
 
 export function createSurveyRouter(deps: SurveyDeps): Router {
   const router = Router();
-  const surveyRateLimit = rateLimit({
-    windowMs: 60_000,
-    limit: 120,
-    standardHeaders: true,
-    legacyHeaders: false,
-  });
+  const surveyRateLimit = perWindow(120);
+  const now = deps.now ?? (() => new Date());
 
   // Auth first, so unauthenticated requests are rejected before they count
   // against anyone's budget. POSTs need no CSRF token here: the session cookie
@@ -72,20 +80,21 @@ export function createSurveyRouter(deps: SurveyDeps): Router {
   });
 
   router.post('/api/survey/scan', async (_req: Request, res: Response) => {
+    let started: ScanState;
     try {
-      await deps.scanner.startScan();
+      started = await deps.scanner.startScan();
     } catch (err) {
       if (err instanceof ScannerBusyError) {
         res.status(409).json({ error: 'busy', status: await loadSurveyStatus(deps) });
         return;
       }
       if (err instanceof ScannerUnavailableError) {
-        res.status(503).json({ error: 'scanner-unavailable', status: await loadSurveyStatus(deps) });
+        res.status(503).json({ error: 'scanner-unavailable', status: await loadSurveyStatus(deps, 'unavailable') });
         return;
       }
       throw err;
     }
-    res.status(202).json(await loadSurveyStatus(deps));
+    res.status(202).json(await loadSurveyStatus(deps, started));
   });
 
   router.post('/api/survey/save', async (_req: Request, res: Response) => {
@@ -105,9 +114,8 @@ export function createSurveyRouter(deps: SurveyDeps): Router {
       res.status(409).json({ error: 'nothing-to-save' });
       return;
     }
-    const now = deps.now ? deps.now() : new Date();
-    await writeSavedSurvey({ ...scan.result, savedAt: now.toISOString(), version: appVersion() }, deps.surveyDir);
-    res.status(200).json(await loadSurveyStatus(deps));
+    await writeSavedSurvey({ ...scan.result, savedAt: now().toISOString(), version: appVersion() }, deps.surveyDir);
+    res.status(200).json(await loadSurveyStatus(deps, scan));
   });
 
   // express.json() is mounted on this one route only, never on the app or
@@ -128,7 +136,6 @@ export function createSurveyRouter(deps: SurveyDeps): Router {
     }
     const macLower = macKey(mac);
     const text = body.text.replace(CONTROL_CHARS_RE, '').slice(0, MAX_NOTE_LENGTH);
-    const now = deps.now ? deps.now() : new Date();
 
     // The read-modify-write happens inside updateNotes's queue, not here, so
     // that two requests in flight (notes save on blur, and tabbing across
@@ -146,7 +153,7 @@ export function createSurveyRouter(deps: SurveyDeps): Router {
         if (!(macLower in notes) && Object.keys(notes).length >= MAX_NOTES) {
           throw new RejectNotesUpdate('too-many-notes');
         }
-        notes[macLower] = { text, updatedAt: now.toISOString() };
+        notes[macLower] = { text, updatedAt: now().toISOString() };
       }, deps.surveyDir);
     } catch (err) {
       if (err instanceof RejectNotesUpdate) {

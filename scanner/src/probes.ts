@@ -67,9 +67,6 @@ export const tcpConnect: Connect = (ip, port, timeoutMs) =>
     socket.connect(port, ip);
   });
 
-// Home devices almost all present self-signed certificates. This reads a page
-// title and nothing else, so accepting them costs nothing; no credential is
-// ever sent to these hosts.
 // The wall-clock deadline as its own function so tests can shorten it; the
 // production default (used whenever the caller doesn't override it) stays
 // generous because a real device dribbling bytes still deserves the full

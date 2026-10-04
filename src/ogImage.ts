@@ -13,11 +13,8 @@ const ALLOWED_CONTENT_TYPES = new Set(['image/png', 'image/jpeg', 'image/gif', '
 // not something an SSRF-guarded outbound fetch should be allowed to reach).
 function isPrivateOrLoopbackIp(ip: string): boolean {
   if (net.isIPv4(ip)) {
-    const octets = ip.split('.').map(Number);
-    const [a, b] = octets;
-    if (octets.length !== 4 || octets.some((n) => Number.isNaN(n) || n < 0 || n > 255)) {
-      return true; // malformed - fail closed
-    }
+    // net.isIPv4 has already guaranteed four decimal octets in 0-255.
+    const [a, b] = ip.split('.').map(Number);
     if (a === 127) return true; // 127.0.0.0/8 loopback
     if (a === 10) return true; // 10.0.0.0/8 private
     if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12 private
@@ -55,14 +52,14 @@ async function isUrlSafeToFetch(rawUrl: string): Promise<boolean> {
   }
 }
 
+// The timeout covers reading the body too, not just the response headers.
+function botFetch(url: string): Promise<Response> {
+  return fetch(url, { headers: { 'User-Agent': USER_AGENT }, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+}
+
 export async function fetchOgImage(url: string): Promise<string | null> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
-    const response = await fetch(url, {
-      headers: { 'User-Agent': USER_AGENT },
-      signal: controller.signal,
-    });
+    const response = await botFetch(url);
     if (!response.ok) return null;
     const html = await response.text();
     const $ = cheerio.load(html);
@@ -70,20 +67,13 @@ export async function fetchOgImage(url: string): Promise<string | null> {
     return content ?? null;
   } catch {
     return null;
-  } finally {
-    clearTimeout(timeout);
   }
 }
 
 export async function downloadImage(imageUrl: string, destPath: string): Promise<string | null> {
   if (!(await isUrlSafeToFetch(imageUrl))) return null;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
-    const response = await fetch(imageUrl, {
-      headers: { 'User-Agent': USER_AGENT },
-      signal: controller.signal,
-    });
+    const response = await botFetch(imageUrl);
     if (!response.ok) return null;
 
     const contentType = (response.headers.get('content-type') ?? '')
@@ -102,7 +92,5 @@ export async function downloadImage(imageUrl: string, destPath: string): Promise
     return contentType;
   } catch {
     return null;
-  } finally {
-    clearTimeout(timeout);
   }
 }

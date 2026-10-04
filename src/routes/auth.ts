@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { OAuth2Client } from 'google-auth-library';
-import rateLimit from 'express-rate-limit';
+import { perWindow } from '../rateLimit';
 import { SESSION_COOKIE, signSession } from '../session';
 import { getAllowedEmails } from '../allowedEmails';
 
@@ -9,12 +9,9 @@ export const authRouter = Router();
 const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const GOOGLE_AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth';
 
-const authCallbackRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 30,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+const SESSION_COOKIE_OPTIONS = { httpOnly: true, secure: true, sameSite: 'lax' } as const;
+
+const authCallbackRateLimit = perWindow(30, 15 * 60 * 1000);
 
 authRouter.get('/auth/google/login', (_req: Request, res: Response) => {
   const params = new URLSearchParams({
@@ -62,21 +59,13 @@ authRouter.get(
       return;
     }
 
-    res.cookie(SESSION_COOKIE, signSession(email), {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: SESSION_MAX_AGE_MS,
-    });
+    res.cookie(SESSION_COOKIE, signSession(email), { ...SESSION_COOKIE_OPTIONS, maxAge: SESSION_MAX_AGE_MS });
     res.redirect(302, '/');
   }
 );
 
 authRouter.get('/auth/logout', (_req: Request, res: Response) => {
-  res.clearCookie(SESSION_COOKIE, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'lax',
-  });
+  // Same attributes as when it was set, or the browser keeps the cookie.
+  res.clearCookie(SESSION_COOKIE, SESSION_COOKIE_OPTIONS);
   res.redirect(302, '/');
 });

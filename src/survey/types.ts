@@ -1,5 +1,5 @@
 // The website <-> scanner contract, and the shapes the website sends to the
-// browser. The real scanner (a later plan) and e2e/fakeScanner.ts both
+// browser. The scanner (scanner/src) and e2e/fakeScanner.ts both
 // implement GET/POST /scan returning ScanState. Spec:
 // docs/superpowers/specs/2026-09-17-ip-survey-design.md
 
