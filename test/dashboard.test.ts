@@ -44,4 +44,17 @@ describe('GET /dashboard', () => {
 
     expect(response.headers['cache-control']).toBe('no-store');
   });
+
+  it('keeps no-store off the public homepage', async () => {
+    const response = await request(createApp()).get('/');
+
+    expect(response.headers['cache-control']).toBeUndefined();
+  });
+
+  it('redirects signed-out visitors from any page under /dashboard', async () => {
+    const response = await request(createApp()).get('/dashboard/not-a-page');
+
+    expect(response.status).toBe(302);
+    expect(response.headers.location).toBe('/');
+  });
 });
