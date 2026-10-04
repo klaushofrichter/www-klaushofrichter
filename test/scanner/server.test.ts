@@ -23,7 +23,7 @@ describe('scanner HTTP contract', () => {
       start: () => {
         if (state.state === 'running') return false;
         starts += 1;
-        state = { state: 'running', stage: 'discovery', stageIndex: 1, stageCount: 4, startedAt: 'now' };
+        state = { state: 'running', stage: 'discovery', stageIndex: 1, stageCount: 3, startedAt: 'now' };
         return true;
       },
     });

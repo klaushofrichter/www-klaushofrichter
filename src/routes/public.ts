@@ -1,17 +1,12 @@
 import { Router, Request, Response } from 'express';
 import express from 'express';
-import rateLimit from 'express-rate-limit';
+import { perWindow } from '../rateLimit';
 import { PUBLIC_DIR, listPublicFiles } from '../publicFiles';
 import { renderPublicIndex } from '../views/publicIndex';
 
 export const publicRouter = Router();
 
-const publicRateLimit = rateLimit({
-  windowMs: 60_000,
-  max: 120,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+const publicRateLimit = perWindow(120);
 
 publicRouter.use('/public', publicRateLimit);
 

@@ -4,25 +4,33 @@ import net from 'node:net';
 import { Device, DevicePort, WebInfo } from '../../src/survey/types';
 import { cleanText } from './names';
 
+export type Scheme = 'http' | 'https';
+interface PortCandidate {
+  port: number;
+  service: string;
+  // How to fetch a page title from it, or null for a non-web service.
+  web: Scheme | null;
+}
+
 // A short, deliberate list. A full port scan takes minutes and rarely answers
 // "what is this device?" better than these do.
-export const PORTS: ReadonlyArray<{ port: number; service: string; web: boolean }> = [
-  { port: 22, service: 'SSH', web: false },
-  { port: 53, service: 'DNS', web: false },
-  { port: 80, service: 'Web', web: true },
-  { port: 443, service: 'Web (TLS)', web: true },
-  { port: 445, service: 'Windows file sharing', web: false },
-  { port: 554, service: 'Camera (RTSP)', web: false },
-  { port: 631, service: 'Printer (IPP)', web: false },
-  { port: 1883, service: 'MQTT', web: false },
-  { port: 5000, service: 'Synology', web: true },
-  { port: 5001, service: 'Synology (TLS)', web: true },
-  { port: 8008, service: 'Chromecast', web: false },
-  { port: 8009, service: 'Chromecast', web: false },
-  { port: 8080, service: 'Web (alt)', web: true },
-  { port: 8123, service: 'Home Assistant', web: true },
-  { port: 8443, service: 'Web (alt TLS)', web: true },
-  { port: 9100, service: 'Printer (raw)', web: false },
+export const PORTS: ReadonlyArray<PortCandidate> = [
+  { port: 22, service: 'SSH', web: null },
+  { port: 53, service: 'DNS', web: null },
+  { port: 80, service: 'Web', web: 'http' },
+  { port: 443, service: 'Web (TLS)', web: 'https' },
+  { port: 445, service: 'Windows file sharing', web: null },
+  { port: 554, service: 'Camera (RTSP)', web: null },
+  { port: 631, service: 'Printer (IPP)', web: null },
+  { port: 1883, service: 'MQTT', web: null },
+  { port: 5000, service: 'Synology', web: 'http' },
+  { port: 5001, service: 'Synology (TLS)', web: 'https' },
+  { port: 8008, service: 'Chromecast', web: null },
+  { port: 8009, service: 'Chromecast', web: null },
+  { port: 8080, service: 'Web (alt)', web: 'http' },
+  { port: 8123, service: 'Home Assistant', web: 'http' },
+  { port: 8443, service: 'Web (alt TLS)', web: 'https' },
+  { port: 9100, service: 'Printer (raw)', web: null },
 ];
 
 const ENTITIES: Record<string, string> = {
@@ -39,7 +47,7 @@ export function extractTitle(html: string): string | null {
 }
 
 export type Connect = (ip: string, port: number, timeoutMs: number) => Promise<boolean>;
-export type Get = (ip: string, port: number, timeoutMs: number) => Promise<WebInfo | null>;
+export type Get = (ip: string, port: number, timeoutMs: number, scheme: Scheme) => Promise<WebInfo | null>;
 
 export interface ProbeOptions {
   connect?: Connect;
@@ -67,9 +75,6 @@ export const tcpConnect: Connect = (ip, port, timeoutMs) =>
     socket.connect(port, ip);
   });
 
-// Home devices almost all present self-signed certificates. This reads a page
-// title and nothing else, so accepting them costs nothing; no credential is
-// ever sent to these hosts.
 // The wall-clock deadline as its own function so tests can shorten it; the
 // production default (used whenever the caller doesn't override it) stays
 // generous because a real device dribbling bytes still deserves the full
@@ -78,10 +83,15 @@ export function defaultHttpDeadlineMs(timeoutMs: number): number {
   return Math.max(timeoutMs, 2000) * 3;
 }
 
-export const httpGet = (ip: string, port: number, timeoutMs: number, deadlineMs?: number): Promise<WebInfo | null> =>
+export const httpGet = (
+  ip: string,
+  port: number,
+  timeoutMs: number,
+  scheme: Scheme = 'http',
+  deadlineMs?: number,
+): Promise<WebInfo | null> =>
   new Promise((resolve) => {
-    const tls = port === 443 || port === 8443 || port === 5001;
-    const url = `${tls ? 'https' : 'http'}://${ip}:${port}/`;
+    const url = `${scheme}://${ip}:${port}/`;
     // Typed as https options because rejectUnauthorized only exists there;
     // http.get ignores the extra field.
     //
@@ -114,7 +124,7 @@ export const httpGet = (ip: string, port: number, timeoutMs: number, deadlineMs?
       resolve(value);
     };
     const deadline = setTimeout(() => finish(null), deadlineMs ?? defaultHttpDeadlineMs(timeoutMs));
-    const request = (tls ? https : http).get(url, options, (response) => {
+    const request = (scheme === 'https' ? https : http).get(url, options, (response) => {
       response.setEncoding('utf8');
       response.on('data', (chunk: string) => {
         body += chunk;
@@ -158,7 +168,7 @@ export async function probeDevices(devices: Device[], options: ProbeOptions = {}
       return isOpen ? candidate : null;
     });
     const openCandidates = open.filter(
-      (candidate): candidate is { port: number; service: string; web: boolean } => candidate !== null,
+      (candidate): candidate is PortCandidate => candidate !== null,
     );
     // Fetching every open web port sequentially cost up to seven 6s
     // deadlines (42s) per device. Firing them all at once bounds a device to
@@ -169,9 +179,7 @@ export async function probeDevices(devices: Device[], options: ProbeOptions = {}
     // wasn't the first one tried.
     const webResults = await Promise.all(
       openCandidates.map((candidate) =>
-        candidate.web
-          ? get(device.ip, candidate.port, Math.max(timeoutMs, 2000)).catch(() => null)
-          : Promise.resolve(null),
+        candidate.web ? get(device.ip, candidate.port, Math.max(timeoutMs, 2000), candidate.web).catch(() => null) : null,
       ),
     );
     // The first non-null result in port order, not whichever settles first,

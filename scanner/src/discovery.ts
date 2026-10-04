@@ -10,9 +10,15 @@ const execFileAsync = promisify(execFile);
 // arp-scan --plain prints "ip<TAB>mac<TAB>vendor" and nothing else. Every
 // device on the segment must answer ARP to be usable on it, so this finds
 // hosts that drop pings and have no open ports.
-export function parseArpScan(stdout: string): Array<{ ip: string; mac: string; vendor: string | null }> {
+export interface ArpRow {
+  ip: string;
+  mac: string;
+  vendor: string | null;
+}
+
+export function parseArpScan(stdout: string): Array<ArpRow> {
   const seen = new Set<string>();
-  const rows: Array<{ ip: string; mac: string; vendor: string | null }> = [];
+  const rows: Array<ArpRow> = [];
   for (const line of stdout.split('\n')) {
     const columns = line.split('\t');
     if (columns.length < 3) {
@@ -41,7 +47,7 @@ export function isPrivateMac(mac: string): boolean {
   return Number.isNaN(first) ? false : (first & 0x02) === 0x02;
 }
 
-function toDevice(row: { ip: string; mac: string; vendor: string | null }): Device {
+function toDevice(row: ArpRow): Device {
   const privateMac = isPrivateMac(row.mac);
   return {
     ip: row.ip,

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-export const STATIC_CARDS_DIR = path.join(__dirname, '..', 'assets', 'cards');
+const STATIC_CARDS_DIR = path.join(__dirname, '..', 'assets', 'cards');
 
 // WebP, not PNG: the hand-curated screenshots are 1200x630 sources rendered
 // into a 110px-tall slot, and shipping them as PNG made the page 4.4MB and

@@ -48,18 +48,18 @@ export interface ScannerClient {
   startScan(): Promise<ScanState>;
 }
 
-export interface ScannerClientOptions {
+interface ScannerClientOptions {
   baseUrl?: string;
   token?: string;
   fetchImpl?: typeof fetch;
-  timeoutMs?: number;
 }
+
+const TIMEOUT_MS = 5000;
 
 export function createScannerClient(options: ScannerClientOptions = {}): ScannerClient {
   const baseUrl = options.baseUrl ?? process.env.SCANNER_URL ?? '';
   const token = options.token ?? process.env.SCANNER_TOKEN ?? '';
   const fetchImpl = options.fetchImpl ?? fetch;
-  const timeoutMs = options.timeoutMs ?? 5000;
 
   // Every failure except "busy" collapses to ScannerUnavailableError: the page
   // treats an unconfigured, unreachable or misbehaving scanner the same way,
@@ -73,7 +73,7 @@ export function createScannerClient(options: ScannerClientOptions = {}): Scanner
       response = await fetchImpl(new URL('/scan', baseUrl), {
         method,
         headers: { authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(timeoutMs),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
       });
     } catch (err) {
       throw new ScannerUnavailableError(`Scanner request failed: ${(err as Error).message}`);

@@ -33,9 +33,9 @@ function assertNotesStore(value: unknown): NotesStore {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     throw new Error('Saved notes are malformed: not an object');
   }
-  for (const [mac, entry] of Object.entries(value as Record<string, unknown>)) {
+  for (const entry of Object.values(value as Record<string, unknown>)) {
     const e = entry as { text?: unknown; updatedAt?: unknown } | null;
-    if (typeof mac !== 'string' || !e || typeof e.text !== 'string' || typeof e.updatedAt !== 'string') {
+    if (!e || typeof e.text !== 'string' || typeof e.updatedAt !== 'string') {
       throw new Error('Saved notes are malformed: an entry is missing text or updatedAt');
     }
   }
@@ -135,15 +135,14 @@ export class RejectNotesUpdate extends Error {}
 // serialize across replicas.
 let notesQueue: Promise<unknown> = Promise.resolve();
 
-export async function updateNotes<T>(
-  mutator: (notes: NotesStore) => T,
+export async function updateNotes(
+  mutator: (notes: NotesStore) => void,
   dir: string = surveyDir(),
-): Promise<T> {
+): Promise<void> {
   const run = notesQueue.then(async () => {
     const notes = await readNotes(dir);
-    const result = mutator(notes);
+    mutator(notes);
     await writeNotes(notes, dir);
-    return result;
   });
   // Keep the queue alive even when this update rejects (a malformed store,
   // or the mutator throwing RejectNotesUpdate): a later queued update must

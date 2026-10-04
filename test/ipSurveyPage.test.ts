@@ -1,17 +1,17 @@
 import { describe, it, expect, vi } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../src/app';
-import { signSession } from '../src/session';
 import { embedJson, renderIpSurveyPage } from '../src/views/ipSurvey';
 import { SurveyStatus, ScanState } from '../src/survey/types';
 import { ScannerClient } from '../src/survey/scannerClient';
+import { fakeScannerClient, sessionCookie } from './helpers';
 
 const hostileName = '</script><script>alert(1)</script>';
 
 const status: SurveyStatus = {
   scan: { state: 'idle' },
   view: {
-    source: 'saved', scannedAt: '2026-09-17T11:00:00.000Z', savedAt: '2026-09-17T11:01:00.000Z', unsaved: false,
+    source: 'saved', scannedAt: '2026-09-17T11:00:00.000Z', savedAt: '2026-09-17T11:01:00.000Z',
     hasSaved: true,
     counts: { devices: 1, new: 0, gone: 0 },
     rows: [{
@@ -68,10 +68,6 @@ describe('renderIpSurveyPage', () => {
 });
 
 describe('GET /dashboard/ip-survey', () => {
-  function scanner(state: ScanState): ScannerClient {
-    return { getScan: vi.fn().mockResolvedValue(state), startScan: vi.fn().mockResolvedValue(state) };
-  }
-
   it('redirects a signed-out visitor to the cards', async () => {
     const response = await request(createApp()).get('/dashboard/ip-survey');
 
@@ -80,17 +76,17 @@ describe('GET /dashboard/ip-survey', () => {
   });
 
   it('renders with the current status for a signed-in user', async () => {
-    const app = createApp({ surveyDeps: { scanner: scanner({ state: 'idle' }), surveyDir: '/nonexistent-survey-dir' } });
+    const app = createApp({ surveyDeps: { scanner: fakeScannerClient({ state: 'idle' }), surveyDir: '/nonexistent-survey-dir' } });
 
     const response = await request(app)
       .get('/dashboard/ip-survey')
-      .set('Cookie', `session=${signSession('allowed@example.com')}`);
+      .set('Cookie', sessionCookie());
 
     expect(response.status).toBe(200);
     expect(extractEmbedded(response.text)).toEqual({
       scan: { state: 'idle' },
       view: {
-        source: 'none', scannedAt: null, savedAt: null, unsaved: false, hasSaved: false, rows: [],
+        source: 'none', scannedAt: null, savedAt: null, hasSaved: false, rows: [],
         counts: { devices: 0, new: 0, gone: 0 },
       },
     });

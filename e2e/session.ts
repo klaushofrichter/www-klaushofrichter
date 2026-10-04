@@ -1,11 +1,11 @@
-import jwt from 'jsonwebtoken';
+import { SESSION_COOKIE, signSession } from '../src/session';
 
-// Signs a session the way the server does (src/session.ts), so signed-in
-// specs need no Google login. COOKIE_SECRET and ALLOWED_EMAILS must match the
-// server under test; CI sets both on the same step.
+// Signs a session with the server's own signSession, so signed-in specs need
+// no Google login and cannot drift from the real session format.
+// COOKIE_SECRET and ALLOWED_EMAILS must match the server under test; CI sets
+// both on the same step.
 export function sessionCookie(baseURL: string) {
-  const secret = process.env.COOKIE_SECRET;
-  if (!secret) {
+  if (!process.env.COOKIE_SECRET) {
     throw new Error('COOKIE_SECRET must be set to the server\'s value for signed-in e2e specs');
   }
   const email = (process.env.ALLOWED_EMAILS ?? '').split(',')[0].trim();
@@ -13,8 +13,8 @@ export function sessionCookie(baseURL: string) {
     throw new Error('ALLOWED_EMAILS must be set to the server\'s value for signed-in e2e specs');
   }
   return {
-    name: 'session',
-    value: jwt.sign({ email }, secret, { expiresIn: '10m' }),
+    name: SESSION_COOKIE,
+    value: signSession(email),
     domain: new URL(baseURL).hostname,
     path: '/',
     httpOnly: true,

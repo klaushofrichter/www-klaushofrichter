@@ -12,8 +12,6 @@ WORKDIR /app
 # The whole reason this service exists: arp-scan needs raw sockets, which the
 # website's pod deliberately does not have.
 RUN apk add --no-cache arp-scan
-ARG APP_VERSION=dev
-ENV APP_VERSION=$APP_VERSION
 ENV NODE_ENV=production
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
@@ -22,4 +20,10 @@ COPY --from=builder /app/dist-scanner ./dist-scanner
 # Deployment). Root in the container plus one capability is a smaller surface
 # than a setcap binary with allowPrivilegeEscalation left on.
 EXPOSE 9450
+# Stamped by the deploy so the running container can report which build it is.
+# Defaults to "dev" for local builds. Declared last: it changes on every
+# deploy and invalidates every layer after it, so placed earlier it would
+# rerun npm ci each time even with package-lock.json unchanged.
+ARG APP_VERSION=dev
+ENV APP_VERSION=$APP_VERSION
 CMD ["node", "dist-scanner/scanner/src/main.js"]

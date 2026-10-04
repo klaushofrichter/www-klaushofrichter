@@ -35,7 +35,7 @@ describe('createScannerClient', () => {
 
   it('POSTs /scan to start a scan', async () => {
     const running: ScanState = {
-      state: 'running', stage: 'discovery', stageIndex: 1, stageCount: 4, startedAt: '2026-09-17T12:00:00.000Z',
+      state: 'running', stage: 'discovery', stageIndex: 1, stageCount: 3, startedAt: '2026-09-17T12:00:00.000Z',
     };
     const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(202, running));
     const client = createScannerClient({ baseUrl: 'http://scanner.test:9450', token: 't0ken', fetchImpl });

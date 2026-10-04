@@ -3,13 +3,7 @@ import http from 'node:http';
 import { describe, it, expect, vi } from 'vitest';
 import { extractTitle, PORTS, probeDevices, tcpConnect, httpGet } from '../../scanner/src/probes';
 import { Device } from '../../src/survey/types';
-
-function device(ip: string): Device {
-  return {
-    ip, mac: 'aa:bb:cc:dd:ee:01', vendor: null, privateMac: false, name: null, nameSource: null,
-    web: null, services: [], ports: [], rttMs: null,
-  };
-}
+import { makeDevice } from '../helpers';
 
 describe('PORTS', () => {
   it('covers the ports the design names, and no others', () => {
@@ -51,7 +45,7 @@ describe('probeDevices', () => {
     const connect = vi.fn(async (ip: string, port: number) => ip === '192.168.1.50' && (port === 22 || port === 8123));
     const get = vi.fn(async () => ({ url: 'http://192.168.1.50:8123', title: 'Home Assistant' }));
 
-    const [probed] = await probeDevices([device('192.168.1.50')], { connect, get, timeoutMs: 10 });
+    const [probed] = await probeDevices([makeDevice('192.168.1.50')], { connect, get, timeoutMs: 10 });
 
     expect(probed.ports.map((p) => p.port)).toEqual([22, 8123]);
     expect(probed.ports[0]).toEqual({ port: 22, service: 'SSH', web: null });
@@ -59,7 +53,7 @@ describe('probeDevices', () => {
   });
 
   it('leaves a silent device with nothing rather than guessing', async () => {
-    const [probed] = await probeDevices([device('192.168.1.120')], {
+    const [probed] = await probeDevices([makeDevice('192.168.1.120')], {
       connect: async () => false,
       get: async () => null,
       timeoutMs: 10,
@@ -84,7 +78,7 @@ describe('probeDevices', () => {
       return { url: `http://${ip}:${port}`, title: `title-${port}` };
     });
 
-    const [probed] = await probeDevices([device('192.168.1.50')], { connect, get, timeoutMs: 10 });
+    const [probed] = await probeDevices([makeDevice('192.168.1.50')], { connect, get, timeoutMs: 10 });
 
     expect(get).toHaveBeenCalledTimes(4);
     // All four fetches overlapped rather than running one at a time.
@@ -110,13 +104,13 @@ describe('probeDevices', () => {
       return { url: `http://${ip}:${port}`, title: `title-${port}` };
     });
 
-    const [probed] = await probeDevices([device('192.168.1.50')], { connect, get, timeoutMs: 10 });
+    const [probed] = await probeDevices([makeDevice('192.168.1.50')], { connect, get, timeoutMs: 10 });
 
     // All three open web ports were fetched together, not stopped after 80.
     expect(get).toHaveBeenCalledTimes(3);
-    expect(get).toHaveBeenCalledWith('192.168.1.50', 80, expect.any(Number));
-    expect(get).toHaveBeenCalledWith('192.168.1.50', 443, expect.any(Number));
-    expect(get).toHaveBeenCalledWith('192.168.1.50', 8123, expect.any(Number));
+    expect(get).toHaveBeenCalledWith('192.168.1.50', 80, expect.any(Number), 'http');
+    expect(get).toHaveBeenCalledWith('192.168.1.50', 443, expect.any(Number), 'https');
+    expect(get).toHaveBeenCalledWith('192.168.1.50', 8123, expect.any(Number), 'http');
     // 443 is the first port (in PORTS order) with a non-null result.
     expect(probed.web).toEqual({ url: 'http://192.168.1.50:443', title: 'title-443' });
     expect(probed.ports.find((p) => p.port === 80)?.web).toBeNull();
@@ -132,7 +126,7 @@ describe('probeDevices', () => {
       return true;
     });
 
-    const probed = await probeDevices([device('192.168.1.9'), device('192.168.1.10')], {
+    const probed = await probeDevices([makeDevice('192.168.1.9'), makeDevice('192.168.1.10')], {
       connect, get: async () => null, timeoutMs: 10,
     });
 
@@ -234,7 +228,7 @@ describe('httpGet against a real loopback server', () => {
     // idle timer, so what actually bounds this call is the injected
     // wall-clock deadline (300ms here, not the production default), not the
     // idle timer.
-    const info = await httpGet('127.0.0.1', port, 50, 300);
+    const info = await httpGet('127.0.0.1', port, 50, 'http', 300);
     const elapsed = Date.now() - started;
 
     expect(info).toBeNull();
@@ -268,7 +262,7 @@ describe('probeDevices concurrency caps', () => {
       return false;
     });
 
-    const devices = Array.from({ length: 20 }, (_, i) => device(`192.168.1.${i + 1}`));
+    const devices = Array.from({ length: 20 }, (_, i) => makeDevice(`192.168.1.${i + 1}`));
     await probeDevices(devices, { connect, get: async () => null, timeoutMs: 5, concurrency: 1 });
 
     expect(maxInFlightDevices).toBeGreaterThan(1);
@@ -286,7 +280,7 @@ describe('probeDevices concurrency caps', () => {
       return false;
     });
 
-    await probeDevices([device('192.168.1.50')], {
+    await probeDevices([makeDevice('192.168.1.50')], {
       connect, get: async () => null, timeoutMs: 5, concurrency: 3,
     });
 

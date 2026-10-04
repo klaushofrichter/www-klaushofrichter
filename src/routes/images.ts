@@ -1,19 +1,14 @@
 import { Router, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
-import rateLimit from 'express-rate-limit';
+import { perWindow } from '../rateLimit';
 import { imagePath, getImageContentType } from '../refreshImages';
 
 export const imagesRouter = Router();
 
 const VALID_ID = /^[a-z0-9-]+$/;
 
-const imagesRateLimit = rateLimit({
-  windowMs: 60_000,
-  max: 60,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+const imagesRateLimit = perWindow(60);
 
 // getImageContentType(id) only ever returns a value for ids that
 // refreshAllImages() itself set, using the controlled ids from links.ts -
