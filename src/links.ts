@@ -247,6 +247,15 @@ export const links: Link[] = [
     requiresAuth: true,
   },
   {
+    id: 'tailscale',
+    title: 'Tailscale',
+    url: 'https://console.tailscale.com/admin/machines',
+    abstract: 'Tailnet admin console: the machines with remote access to the cluster.',
+    gradient: 'linear-gradient(135deg, #242424, #4a4a4a)',
+    cardColor: CARD_COLORS.onyx,
+    requiresAuth: true,
+  },
+  {
     id: 'instagetter',
     title: 'instagetter',
     url: 'https://insta.klaushofrichter.net',
