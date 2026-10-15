@@ -256,6 +256,15 @@ export const links: Link[] = [
     requiresAuth: true,
   },
   {
+    id: 'games',
+    title: 'Game Table Console',
+    url: 'https://games.skylar.technology',
+    abstract: 'Game table admin: approve tables, see play stats, and manage game repositories.',
+    gradient: 'linear-gradient(135deg, #12261f, #2a4a3c)',
+    cardColor: CARD_COLORS.forest,
+    requiresAuth: true,
+  },
+  {
     id: 'instagetter',
     title: 'instagetter',
     url: 'https://insta.klaushofrichter.net',
