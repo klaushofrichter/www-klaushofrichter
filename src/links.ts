@@ -265,6 +265,15 @@ export const links: Link[] = [
     requiresAuth: true,
   },
   {
+    id: 'rpi-connect',
+    title: 'Raspberry Pi Connect',
+    url: 'https://connect.raspberrypi.com/devices',
+    abstract: 'Remote shell and screen access to the Raspberry Pi devices.',
+    gradient: 'linear-gradient(135deg, #4a1525, #c51a4a)',
+    cardColor: CARD_COLORS.ember,
+    requiresAuth: true,
+  },
+  {
     id: 'instagetter',
     title: 'instagetter',
     url: 'https://insta.klaushofrichter.net',
