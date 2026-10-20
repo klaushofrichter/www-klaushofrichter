@@ -19,13 +19,13 @@
     "cookie-parser": "^1.4.7",
     "express": "^5.3.0",
     "express-rate-limit": "^8.7.1",
-    "google-auth-library": "^11.2.0",
+    "google-auth-library": "^11.3.1",
     "jsonwebtoken": "^9.0.3",
     "multicast-dns": "^7.2.5",
     "node-cron": "^4.6.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.64.0",
+    "@playwright/test": "^1.64.1",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
@@ -34,6 +34,6 @@
     "supertest": "^7.3.1",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.5"
   }
 }
