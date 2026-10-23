@@ -112,6 +112,14 @@ export const links: Link[] = [
     cardColor: CARD_COLORS.slate,
   },
   {
+    id: 'gametable',
+    title: 'Game Table',
+    url: 'https://games.skylar.technology',
+    abstract: 'Open-source board and card games around one shared touchscreen, with phones as private hands.',
+    gradient: 'linear-gradient(135deg, #12261f, #c9a14a)',
+    cardColor: CARD_COLORS.forest,
+  },
+  {
     id: 'headlamp',
     title: 'Headlamp',
     url: 'https://headlamp.skylar.technology',
@@ -258,7 +266,7 @@ export const links: Link[] = [
   {
     id: 'games',
     title: 'Game Table Console',
-    url: 'https://games.skylar.technology',
+    url: 'https://games.skylar.technology/admin',
     abstract: 'Game table admin: approve tables, see play stats, and manage game repositories.',
     gradient: 'linear-gradient(135deg, #12261f, #2a4a3c)',
     cardColor: CARD_COLORS.forest,
