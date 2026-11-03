@@ -61,6 +61,9 @@ export interface SurveyRow extends Device {
   // A fact about the device, not the scan snapshot; merged in server-side
   // from notes.json so a 'gone' row keeps its note if the device returns.
   note: string | null;
+  // When the device last answered a saved scan; set on 'gone' rows only,
+  // which come from known-devices.json rather than from a scan.
+  lastSeenAt: string | null;
 }
 
 // Keyed by lowercase MAC address so a note survives rescans and reappears if
@@ -71,6 +74,22 @@ export interface NoteEntry {
 }
 
 export type NotesStore = Record<string, NoteEntry>;
+
+// Every device that has answered a saved scan, keyed by lowercase MAC, so a
+// device that is offline now is still listed (as 'gone') instead of being
+// forgotten the moment a scan without it is saved. Only what a 'gone' row
+// shows is kept: ports, services and web details describe a moment, not the
+// device.
+export interface KnownDevice {
+  ip: string;
+  name: string | null;
+  nameSource: NameSource | null;
+  vendor: string | null;
+  privateMac: boolean;
+  lastSeenAt: string;
+}
+
+export type KnownDevicesStore = Record<string, KnownDevice>;
 
 export interface SurveyView {
   // 'scan' means a finished scan that has not been saved yet.

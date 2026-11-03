@@ -8,7 +8,7 @@ import path from 'path';
 import { createSurveyRouter } from '../src/routes/survey';
 import { createApp } from '../src/app';
 import { ScannerBusyError, ScannerClient, ScannerUnavailableError } from '../src/survey/scannerClient';
-import { readNotes, readSavedSurvey, writeNotes, writeSavedSurvey } from '../src/survey/store';
+import { readKnownDevices, readNotes, readSavedSurvey, writeKnownDevices, writeNotes, writeSavedSurvey } from '../src/survey/store';
 import { Device, ScanState } from '../src/survey/types';
 import { fakeScannerClient, sessionCookie } from './helpers';
 
@@ -316,6 +316,165 @@ describe('survey API', () => {
 
       expect(response.status).toBe(413);
       expect(response.body).toEqual({ error: 'too-large' });
+    });
+  });
+
+  describe('known devices', () => {
+    const printer: Device = {
+      ip: '192.168.1.10', mac: '00:1b:a9:44:55:66', vendor: 'Brother Industries, Ltd.', privateMac: false,
+      name: 'Brother HL-L2350DW', nameSource: 'mdns', web: null, services: [], ports: [], rttMs: 12,
+    };
+    const withPrinter: ScanState = {
+      state: 'finished',
+      result: { scannedAt: '2026-09-17T11:00:00.000Z', cidr: '192.168.1.0/24', devices: [router, printer] },
+    };
+
+    function goneMacs(body: { view: { rows: Array<{ mac: string; status: string }> } }): string[] {
+      return body.view.rows.filter((row) => row.status === 'gone').map((row) => row.mac);
+    }
+
+    it('keeps a device that went offline as gone after the save that no longer has it', async () => {
+      await request(makeApp(fakeScannerClient(withPrinter))).post('/api/survey/save').set('Cookie', sessionCookie());
+
+      const response = await request(makeApp(fakeScannerClient(finished))).post('/api/survey/save').set('Cookie', sessionCookie());
+
+      expect(response.status).toBe(200);
+      expect(response.body.view.source).toBe('saved');
+      expect(goneMacs(response.body)).toEqual([printer.mac]);
+      const gone = response.body.view.rows.find((row: { mac: string }) => row.mac === printer.mac);
+      expect(gone).toMatchObject({ ip: printer.ip, name: printer.name, lastSeenAt: withPrinter.result.scannedAt });
+      expect(response.body.view.counts).toEqual({ devices: 1, new: 0, gone: 1 });
+      expect(Object.keys((await readKnownDevices(dir))!).sort()).toEqual([printer.mac, router.mac].sort());
+    });
+
+    it('seeds the known list from the existing latest.json on the first save, so nothing saved today is lost', async () => {
+      await writeSavedSurvey({ ...withPrinter.result, savedAt: 'x', version: 'dev' }, dir);
+
+      const response = await request(makeApp(fakeScannerClient(finished))).post('/api/survey/save').set('Cookie', sessionCookie());
+
+      expect(goneMacs(response.body)).toEqual([printer.mac]);
+      expect((await readKnownDevices(dir))![printer.mac].lastSeenAt).toBe(withPrinter.result.scannedAt);
+    });
+
+    it('shows one gone row per device on an unsaved scan, not one from the saved survey and one from the known list', async () => {
+      await request(makeApp(fakeScannerClient(withPrinter))).post('/api/survey/save').set('Cookie', sessionCookie());
+
+      const response = await request(makeApp(fakeScannerClient(finished))).get('/api/survey').set('Cookie', sessionCookie());
+
+      expect(response.body.view.source).toBe('scan');
+      expect(goneMacs(response.body)).toEqual([printer.mac]);
+      expect(response.body.view.counts).toEqual({ devices: 1, new: 0, gone: 1 });
+    });
+
+    describe('POST /api/survey/known-devices/remove', () => {
+      const remove = (app: express.Express, body: unknown) => request(app)
+        .post('/api/survey/known-devices/remove')
+        .set('Cookie', sessionCookie())
+        .send(body as object);
+
+      it('requires a session', async () => {
+        const response = await request(makeApp(fakeScannerClient(finished)))
+          .post('/api/survey/known-devices/remove')
+          .send({ mac: printer.mac });
+
+        expect(response.status).toBe(401);
+      });
+
+      it('refuses a cross-origin request even with a session', async () => {
+        await writeKnownDevices({ [printer.mac]: { ...printer, lastSeenAt: '2026-09-17T11:00:00.000Z' } }, dir);
+
+        const response = await request(makeApp(fakeScannerClient(finished)))
+          .post('/api/survey/known-devices/remove')
+          .set('Cookie', sessionCookie())
+          .set('Sec-Fetch-Site', 'same-site')
+          .send({ mac: printer.mac });
+
+        expect(response.status).toBe(403);
+        expect(Object.keys((await readKnownDevices(dir))!)).toEqual([printer.mac]);
+      });
+
+      it('rejects a malformed or missing MAC', async () => {
+        const app = makeApp(fakeScannerClient(finished));
+
+        for (const body of [{ mac: 'not-a-mac' }, { mac: '__proto__' }, {}, { mac: 42 }]) {
+          const response = await remove(app, body);
+          expect(response.status).toBe(400);
+          expect(response.body).toEqual({ error: 'bad-mac' });
+        }
+        await expect(readKnownDevices(dir)).resolves.toBeNull();
+      });
+
+      it('answers 400 bad-json for an unparseable body', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        const response = await request(makeApp(fakeScannerClient(finished)))
+          .post('/api/survey/known-devices/remove')
+          .set('Cookie', sessionCookie())
+          .set('Content-Type', 'application/json')
+          .send('{ nope');
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({ error: 'bad-json' });
+        vi.restoreAllMocks();
+      });
+
+      it('removes the device, normalizing the MAC, and keeps its note', async () => {
+        await request(makeApp(fakeScannerClient(withPrinter))).post('/api/survey/save').set('Cookie', sessionCookie());
+        await request(makeApp(fakeScannerClient(finished))).post('/api/survey/save').set('Cookie', sessionCookie());
+        await writeNotes({ [printer.mac]: { text: 'upstairs', updatedAt: 'x' } }, dir);
+
+        const response = await remove(makeApp(fakeScannerClient(finished)), { mac: printer.mac.toUpperCase() });
+
+        expect(response.status).toBe(200);
+        expect(goneMacs(response.body)).toEqual([]);
+        expect(Object.keys((await readKnownDevices(dir))!)).toEqual([router.mac]);
+        expect((await readNotes(dir))[printer.mac].text).toBe('upstairs');
+      });
+
+      it('stays removed while an unsaved scan shows and latest.json still lists the device', async () => {
+        await request(makeApp(fakeScannerClient(withPrinter))).post('/api/survey/save').set('Cookie', sessionCookie());
+        // The scanner now holds a newer, unsaved scan without the printer.
+        const app = makeApp(fakeScannerClient(finished));
+        expect(goneMacs((await request(app).get('/api/survey').set('Cookie', sessionCookie())).body)).toEqual([printer.mac]);
+
+        await remove(app, { mac: printer.mac });
+
+        const response = await request(app).get('/api/survey').set('Cookie', sessionCookie());
+        expect(response.body.view.source).toBe('scan');
+        expect(response.body.view.rows.map((row: { mac: string }) => row.mac)).toEqual([router.mac]);
+        expect((await readSavedSurvey(dir))!.devices.map((device) => device.mac)).toContain(printer.mac);
+      });
+
+      it('brings a removed device back as a normal row when it answers a scan, and knows it again after the save', async () => {
+        await request(makeApp(fakeScannerClient(withPrinter))).post('/api/survey/save').set('Cookie', sessionCookie());
+        await request(makeApp(fakeScannerClient(finished))).post('/api/survey/save').set('Cookie', sessionCookie());
+        await remove(makeApp(fakeScannerClient(finished)), { mac: printer.mac });
+
+        const returned: ScanState = { state: 'finished', result: { ...withPrinter.result, scannedAt: '2026-09-17T13:00:00.000Z' } };
+        const shown = await request(makeApp(fakeScannerClient(returned))).get('/api/survey').set('Cookie', sessionCookie());
+        expect(shown.body.view.rows.find((row: { mac: string }) => row.mac === printer.mac).status).toBe('new');
+
+        await request(makeApp(fakeScannerClient(returned))).post('/api/survey/save').set('Cookie', sessionCookie());
+        expect(Object.keys((await readKnownDevices(dir))!).sort()).toEqual([printer.mac, router.mac].sort());
+      });
+
+      it('is idempotent for a MAC that is not known', async () => {
+        const response = await remove(makeApp(fakeScannerClient(finished)), { mac: 'de:ad:be:ef:00:01' });
+
+        expect(response.status).toBe(200);
+        await expect(readKnownDevices(dir)).resolves.toEqual({});
+      });
+
+      it('answers 500 JSON when the known list is corrupt, and does not overwrite it', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        await fs.writeFile(path.join(dir, 'known-devices.json'), '{ corrupt');
+
+        const response = await remove(makeApp(fakeScannerClient(finished)), { mac: printer.mac });
+
+        expect(response.status).toBe(500);
+        expect(response.body).toEqual({ error: 'internal' });
+        expect(await fs.readFile(path.join(dir, 'known-devices.json'), 'utf8')).toBe('{ corrupt');
+        vi.restoreAllMocks();
+      });
     });
   });
 });

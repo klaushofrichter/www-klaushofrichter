@@ -49,7 +49,8 @@ single source of truth for all of them.
   download link; `GET /public/<filename>` serves one. See "Public files".
 - `GET /dashboard`, `GET /dashboard/ip-survey` — signed-in pages (see
   "Dashboard"). Signed-out requests are redirected to `/`.
-- `GET /api/survey`, `POST /api/survey/scan`, `POST /api/survey/save` — the IP
+- `GET /api/survey`, `POST /api/survey/scan`, `POST /api/survey/save`,
+  `POST /api/survey/notes`, `POST /api/survey/known-devices/remove` — the IP
   Survey API. Signed-out requests get `401`.
 
 ### Social previews
@@ -96,7 +97,18 @@ dialog for open ports, services and response time. **Scan** asks the scanner
 for a fresh survey; **Save** stores the scanner's finished result as
 `latest.json` under `SURVEY_DIR` (the `www-data` PVC in production, mounted at
 `/app/data/surveys`). A new scan is compared with the saved one by MAC
-address, marking devices *new* or *gone*.
+address, marking devices *new*.
+
+Every device that has been in a saved scan is remembered in
+`known-devices.json` beside `latest.json` (last-seen IP, name, manufacturer
+and time, keyed by MAC), updated on each Save. Any known device missing from
+what the page shows — a saved survey or an unsaved scan — is listed at the
+bottom as *gone*, with when it was last seen. Clicking the *gone* badge offers
+to remove it from the list; its note is kept, and if it answers a later scan it
+is back as a normal row and known again after the next Save. Entries for
+private (rotating) MAC addresses are dropped automatically once unseen for 30
+days; everything else stays until removed. The first Save after this was added
+seeds the file from the existing `latest.json`.
 
 The scan itself runs in a separate privileged scanner service (see
 `docs/superpowers/specs/2026-09-17-ip-survey-design.md`). The website reaches

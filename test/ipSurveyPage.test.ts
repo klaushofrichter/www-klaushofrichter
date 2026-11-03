@@ -17,7 +17,7 @@ const status: SurveyStatus = {
     rows: [{
       ip: '192.168.1.9', mac: 'b8:27:eb:11:22:33', vendor: null, privateMac: false, name: hostileName,
       nameSource: 'mdns', web: null, services: [], ports: [], rttMs: 4,
-      status: 'unchanged', ipNum: 3232235785, statusRank: 1, note: null,
+      status: 'unchanged', ipNum: 3232235785, statusRank: 1, note: null, lastSeenAt: null,
     }],
   },
 };
@@ -46,6 +46,7 @@ describe('renderIpSurveyPage', () => {
     expect(html).toContain('id="survey-rows"');
     expect(html).toContain('<th data-sort-key="ipNum" aria-sort="ascending">');
     expect(html).toContain('<dialog id="details-dialog"');
+    expect(html).toContain('<dialog id="remove-dialog"');
   });
 
   it('embeds the status so the page renders without a second request', () => {
