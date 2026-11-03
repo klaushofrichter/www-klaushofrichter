@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { buildSurveyView, compareToSaved, ipToNumber } from '../src/survey/view';
-import { Device, SavedSurvey, ScanResult } from '../src/survey/types';
+import { buildSurveyView, compareToSaved, goneRows, ipToNumber } from '../src/survey/view';
+import { seedKnownDevices } from '../src/survey/store';
+import { Device, KnownDevicesStore, SavedSurvey, ScanResult } from '../src/survey/types';
 import { makeDevice } from './helpers';
 
 function saved(devices: Device[], scannedAt = '2026-09-17T10:00:00.000Z'): SavedSurvey {
@@ -30,7 +31,7 @@ describe('compareToSaved', () => {
     expect(rows.map((r) => r.status)).toEqual(['unchanged']);
   });
 
-  it('marks new, unchanged and gone devices by MAC address', () => {
+  it('marks new and unchanged devices by MAC address, and leaves gone rows to the known-devices list', () => {
     const rows = compareToSaved(
       [makeDevice('192.168.1.2', 'aa:aa:aa:aa:aa:01'), makeDevice('192.168.1.3', 'aa:aa:aa:aa:aa:02')],
       [makeDevice('192.168.1.2', 'aa:aa:aa:aa:aa:01'), makeDevice('192.168.1.4', 'aa:aa:aa:aa:aa:03')],
@@ -39,7 +40,6 @@ describe('compareToSaved', () => {
     expect(rows.map((r) => [r.mac, r.status])).toEqual([
       ['aa:aa:aa:aa:aa:01', 'unchanged'],
       ['aa:aa:aa:aa:aa:02', 'new'],
-      ['aa:aa:aa:aa:aa:03', 'gone'],
     ]);
   });
 
@@ -85,9 +85,12 @@ describe('buildSurveyView', () => {
   });
 
   it('shows an unsaved scan compared against the saved survey', () => {
+    const savedSurvey = saved([makeDevice('192.168.1.2', 'aa:aa:aa:aa:aa:01'), makeDevice('192.168.1.4', 'aa:aa:aa:aa:aa:03')]);
     const view = buildSurveyView(
       scan([makeDevice('192.168.1.2', 'aa:aa:aa:aa:aa:01'), makeDevice('192.168.1.3', 'aa:aa:aa:aa:aa:02')]),
-      saved([makeDevice('192.168.1.2', 'aa:aa:aa:aa:aa:01'), makeDevice('192.168.1.4', 'aa:aa:aa:aa:aa:03')]),
+      savedSurvey,
+      {},
+      seedKnownDevices(savedSurvey),
     );
 
     expect(view.source).toBe('scan');
@@ -125,13 +128,116 @@ describe('buildSurveyView', () => {
   });
 
   it('keeps a note on a device that disappeared, so it comes back if the device does', () => {
+    const savedSurvey = saved([makeDevice('192.168.1.2', 'aa:aa:aa:aa:aa:01'), makeDevice('192.168.1.3', 'aa:aa:aa:aa:aa:02')]);
     const view = buildSurveyView(
       scan([makeDevice('192.168.1.2', 'aa:aa:aa:aa:aa:01')]),
-      saved([makeDevice('192.168.1.2', 'aa:aa:aa:aa:aa:01'), makeDevice('192.168.1.3', 'aa:aa:aa:aa:aa:02')]),
+      savedSurvey,
       { 'aa:aa:aa:aa:aa:02': { text: 'old laptop', updatedAt: '2026-09-17T12:00:00.000Z' } },
+      seedKnownDevices(savedSurvey),
     );
 
     const gone = view.rows.find((row) => row.status === 'gone');
     expect(gone?.note).toBe('old laptop');
+  });
+
+  describe('known devices', () => {
+    const LAST_SEEN = '2026-09-10T08:00:00.000Z';
+
+    function known(...entries: Array<[string, string, string | null]>): KnownDevicesStore {
+      const store: KnownDevicesStore = {};
+      for (const [mac, ip, name] of entries) {
+        store[mac] = { ip, name, nameSource: null, vendor: 'Acme', privateMac: false, lastSeenAt: LAST_SEEN };
+      }
+      return store;
+    }
+
+    it('adds a gone row, at its last-seen IP and time, for a known device missing from the saved survey', () => {
+      const view = buildSurveyView(
+        null,
+        saved([makeDevice('192.168.1.2', 'aa:aa:aa:aa:aa:01')]),
+        {},
+        known(['aa:aa:aa:aa:aa:01', '192.168.1.2', null], ['aa:aa:aa:aa:aa:09', '192.168.1.77', 'old laptop']),
+      );
+
+      expect(view.source).toBe('saved');
+      const gone = view.rows.filter((row) => row.status === 'gone');
+      expect(gone).toHaveLength(1);
+      expect(gone[0]).toMatchObject({
+        mac: 'aa:aa:aa:aa:aa:09', ip: '192.168.1.77', name: 'old laptop', vendor: 'Acme',
+        lastSeenAt: LAST_SEEN, statusRank: 2, web: null, ports: [], services: [],
+      });
+      expect(view.counts).toEqual({ devices: 1, new: 0, gone: 1 });
+    });
+
+    it('never lists a device twice, whether it is gone from the saved survey, the known list, or both', () => {
+      const savedSurvey = saved([makeDevice('192.168.1.2', 'aa:aa:aa:aa:aa:01'), makeDevice('192.168.1.3', 'aa:aa:aa:aa:aa:02')]);
+      const view = buildSurveyView(
+        scan([makeDevice('192.168.1.2', 'aa:aa:aa:aa:aa:01')]),
+        savedSurvey,
+        {},
+        { ...seedKnownDevices(savedSurvey), ...known(['aa:aa:aa:aa:aa:03', '192.168.1.4', null]) },
+      );
+
+      const macs = view.rows.map((row) => row.mac);
+      expect(new Set(macs).size).toBe(macs.length);
+      expect(view.rows.filter((row) => row.status === 'gone').map((row) => row.mac).sort())
+        .toEqual(['aa:aa:aa:aa:aa:02', 'aa:aa:aa:aa:aa:03']);
+      expect(view.counts).toEqual({ devices: 1, new: 0, gone: 2 });
+    });
+
+    it('does not show a removed device as gone, even while the saved survey still lists it', () => {
+      const savedSurvey = saved([makeDevice('192.168.1.2', 'aa:aa:aa:aa:aa:01'), makeDevice('192.168.1.3', 'aa:aa:aa:aa:aa:02')]);
+      const knownAfterRemoval = seedKnownDevices(savedSurvey);
+      delete knownAfterRemoval['aa:aa:aa:aa:aa:02'];
+
+      const view = buildSurveyView(scan([makeDevice('192.168.1.2', 'aa:aa:aa:aa:aa:01')]), savedSurvey, {}, knownAfterRemoval);
+
+      expect(view.rows.map((row) => row.mac)).toEqual(['aa:aa:aa:aa:aa:01']);
+      expect(view.counts.gone).toBe(0);
+    });
+
+    it('shows a returning device as a normal row, not as gone', () => {
+      const view = buildSurveyView(
+        scan([makeDevice('192.168.1.50', 'AA:AA:AA:AA:AA:09')]),
+        saved([]),
+        {},
+        known(['aa:aa:aa:aa:aa:09', '192.168.1.77', 'old laptop']),
+      );
+
+      expect(view.rows.map((row) => [row.ip, row.status])).toEqual([['192.168.1.50', 'new']]);
+    });
+
+    it('keeps the last-seen IP on a gone row even when another device now has it', () => {
+      const view = buildSurveyView(
+        null,
+        saved([makeDevice('192.168.1.77', 'aa:aa:aa:aa:aa:01')]),
+        {},
+        known(['aa:aa:aa:aa:aa:01', '192.168.1.77', null], ['aa:aa:aa:aa:aa:09', '192.168.1.77', null]),
+      );
+
+      expect(view.rows.map((row) => [row.mac, row.ip, row.status])).toEqual([
+        ['aa:aa:aa:aa:aa:01', '192.168.1.77', 'unchanged'],
+        ['aa:aa:aa:aa:aa:09', '192.168.1.77', 'gone'],
+      ]);
+    });
+
+    it('keeps a note on a gone row from the known list', () => {
+      const view = buildSurveyView(
+        null,
+        saved([]),
+        { 'aa:aa:aa:aa:aa:09': { text: 'in the drawer', updatedAt: 'x' } },
+        known(['aa:aa:aa:aa:aa:09', '192.168.1.77', null]),
+      );
+
+      expect(view.rows[0].note).toBe('in the drawer');
+    });
+
+    it('leaves lastSeenAt empty on rows that are present', () => {
+      const rows = goneRows([makeDevice('192.168.1.2', 'aa:aa:aa:aa:aa:01')], known(['aa:aa:aa:aa:aa:01', '192.168.1.2', null]));
+      const view = buildSurveyView(null, saved([makeDevice('192.168.1.2', 'aa:aa:aa:aa:aa:01')]));
+
+      expect(rows).toEqual([]);
+      expect(view.rows[0].lastSeenAt).toBeNull();
+    });
   });
 });

@@ -18,6 +18,10 @@ this file is where notes are written *before* a release.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
+- IP Survey: devices that were online but are not now stay listed as *gone*,
+  with when they were last seen, instead of being forgotten when a scan without
+  them is saved. Clicking *gone* removes one from the list (its note is kept).
+
 ## 2026-08-20
 
 ### Added

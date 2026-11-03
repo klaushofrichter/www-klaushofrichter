@@ -16,6 +16,7 @@ test.describe('signed out', () => {
     expect((await request.get('/api/survey')).status()).toBe(401);
     expect((await request.post('/api/survey/scan')).status()).toBe(401);
     expect((await request.post('/api/survey/save')).status()).toBe(401);
+    expect((await request.post('/api/survey/known-devices/remove', { data: { mac: '00:1b:a9:44:55:66' } })).status()).toBe(401);
   });
 });
 
@@ -141,6 +142,88 @@ test.describe('IP survey against the fake scanner', () => {
     await expect(rows.filter({ hasText: 'Living Room TV' }).locator('.badge-new')).toHaveCount(1);
     await expect(rows.filter({ hasText: 'Brother HL-L2350DW' })).toHaveClass(/gone/);
     await expect(page.locator('#save-button')).toBeEnabled();
+  });
+
+  // Runs right after the test above, which saved fixture A and left fixture B
+  // as an unsaved scan: the printer is in A only.
+  test('a device that went offline stays listed as gone and can be removed from a dialog', async ({ page }) => {
+    const rows = page.locator('#survey-rows tr');
+    const statusLine = page.locator('#survey-status-line');
+    const printerRow = rows.filter({ hasText: 'Brother HL-L2350DW' });
+    const badge = printerRow.getByRole('button', { name: /^Gone: remove Brother HL-L2350DW/ });
+    const dialog = page.locator('#remove-dialog');
+    const shots = process.env.E2E_SCREENSHOT_DIR;
+
+    await page.goto('/dashboard/ip-survey');
+    await expect(statusLine).toContainText('Unsaved scan', { timeout: 15_000 });
+    await expect(printerRow).toHaveClass(/gone/);
+
+    // Saving the scan without the printer no longer forgets it.
+    await page.locator('#save-button').click();
+    await expect(statusLine).toContainText('Saved survey');
+    await expect(statusLine).toContainText('6 devices · 1 gone');
+    await expect(rows).toHaveCount(7);
+    await expect(printerRow).toHaveCount(1);
+    await expect(printerRow).toHaveClass(/gone/);
+    await expect(rows.last()).toContainText('Brother HL-L2350DW');
+    await expect(printerRow.locator('td').nth(1)).toHaveText('192.168.1.10');
+    await expect(printerRow.locator('.last-seen')).toContainText('last seen');
+
+    // Notes keep working on a gone row.
+    const note = page.getByLabel('Note for Brother HL-L2350DW');
+    await note.fill('upstairs office');
+    await note.press('Enter');
+    await expect(printerRow.locator('.note-saved-hint')).toHaveText('Saved');
+    if (shots) await page.screenshot({ path: `${shots}/ip-survey-gone-row.png`, fullPage: true });
+
+    // The badge is a real button: reachable by keyboard and opened with Enter.
+    await badge.focus();
+    await expect(badge).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator('#remove-title')).toHaveText('Remove Brother HL-L2350DW from the list?');
+    await expect(dialog).toContainText('192.168.1.10');
+    await expect(dialog).toContainText('Its note is kept');
+    // Cancel is the safe default.
+    await expect(page.locator('#remove-cancel')).toBeFocused();
+    if (shots) await page.screenshot({ path: `${shots}/ip-survey-remove-dialog.png` });
+
+    // Escape cancels, and focus goes back to the badge.
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(badge).toBeFocused();
+
+    // So does Cancel.
+    await badge.click();
+    await page.locator('#remove-cancel').click();
+    await expect(dialog).toBeHidden();
+    await expect(printerRow).toHaveCount(1);
+
+    // Remove.
+    await badge.click();
+    await page.locator('#remove-confirm').click();
+    await expect(dialog).toBeHidden();
+    await expect(printerRow).toHaveCount(0);
+    await expect(page.locator('#survey-heading')).toBeFocused();
+    await expect(statusLine).not.toContainText('gone');
+    await page.reload();
+    await expect(rows).toHaveCount(6);
+    await expect(printerRow).toHaveCount(0);
+
+    // The printer answers the next scan (fixture A again): back as a normal
+    // row, with its note.
+    await page.locator('#scan-button').click();
+    await expect(statusLine).toContainText('Unsaved scan', { timeout: 15_000 });
+    await expect(printerRow).toHaveCount(1);
+    await expect(printerRow).not.toHaveClass(/gone/);
+    await expect(printerRow.locator('.badge-new')).toHaveCount(1);
+    await expect(page.getByLabel('Note for Brother HL-L2350DW')).toHaveValue('upstairs office');
+
+    // Clean up the note so re-runs start without it.
+    const cleared = await page.request.post('/api/survey/notes', {
+      data: { mac: '00:1b:a9:44:55:66', text: '' },
+    });
+    expect(cleared.status()).toBe(200);
   });
 
   test('a note is saved on blur and survives a reload', async ({ page }) => {
