@@ -2,7 +2,16 @@ import express, { NextFunction, Request, Response, Router } from 'express';
 import { perWindow } from '../rateLimit';
 import { noStore, requireAuthApi } from '../requireAuth';
 import { ScannerBusyError, ScannerClient, ScannerUnavailableError } from '../survey/scannerClient';
-import { readNotes, readSavedSurvey, RejectNotesUpdate, updateNotes, writeSavedSurvey } from '../survey/store';
+import {
+  readKnownDevices,
+  readNotes,
+  readSavedSurvey,
+  RejectNotesUpdate,
+  removeKnownDevice,
+  saveSurvey,
+  seedKnownDevices,
+  updateNotes,
+} from '../survey/store';
 import { ScanProgress, ScanState, SurveyStatus } from '../survey/types';
 import { buildSurveyView, macKey } from '../survey/view';
 import { appVersion } from '../version';
@@ -51,16 +60,20 @@ export async function loadSurveyStatus(
   deps: SurveyDeps,
   known?: ScanState | 'unavailable',
 ): Promise<SurveyStatus> {
-  const [saved, notes, scan] = await Promise.all([
+  const [saved, notes, knownFile, scan] = await Promise.all([
     readSavedSurvey(deps.surveyDir),
     readNotes(deps.surveyDir),
+    readKnownDevices(deps.surveyDir),
     known ?? fetchScan(deps.scanner),
   ]);
+  // Until the first save creates known-devices.json, the saved survey stands
+  // in for it -- the same seed that save will write (see loadKnownDevices).
+  const knownDevices = knownFile ?? seedKnownDevices(saved);
   if (scan === 'unavailable') {
-    return { scan: { state: 'unavailable' }, view: buildSurveyView(null, saved, notes) };
+    return { scan: { state: 'unavailable' }, view: buildSurveyView(null, saved, notes, knownDevices) };
   }
   const finished = scan.state === 'finished' ? scan.result : null;
-  return { scan: toProgress(scan), view: buildSurveyView(finished, saved, notes) };
+  return { scan: toProgress(scan), view: buildSurveyView(finished, saved, notes, knownDevices) };
 }
 
 export function createSurveyRouter(deps: SurveyDeps): Router {
@@ -114,7 +127,10 @@ export function createSurveyRouter(deps: SurveyDeps): Router {
       res.status(409).json({ error: 'nothing-to-save' });
       return;
     }
-    await writeSavedSurvey({ ...scan.result, savedAt: now().toISOString(), version: appVersion() }, deps.surveyDir);
+    // Also records the scan in known-devices.json, so devices missing from it
+    // are kept as 'gone' rather than forgotten.
+    const savedAt = now();
+    await saveSurvey({ ...scan.result, savedAt: savedAt.toISOString(), version: appVersion() }, savedAt, deps.surveyDir);
     res.status(200).json(await loadSurveyStatus(deps, scan));
   });
 
@@ -165,6 +181,23 @@ export function createSurveyRouter(deps: SurveyDeps): Router {
     res.status(200).json(await loadSurveyStatus(deps));
   });
 
+  // Removes a device from the known-devices list (the 'gone' badge's dialog).
+  // Same guards as the notes route: requireAuthApi and the rate limit come
+  // from the router.use above, which also refuses a cross-origin POST, and
+  // express.json() is mounted on this route alone for the same reason as
+  // there. The note is not touched. If the device answers a later scan it is
+  // listed again, and is known again once that scan is saved.
+  router.post('/api/survey/known-devices/remove', express.json({ limit: '1kb' }), async (req: Request, res: Response) => {
+    const body = (req.body ?? {}) as { mac?: unknown };
+    const mac = typeof body.mac === 'string' ? body.mac : '';
+    if (!MAC_RE.test(mac)) {
+      res.status(400).json({ error: 'bad-mac' });
+      return;
+    }
+    await removeKnownDevice(macKey(mac), deps.surveyDir);
+    res.status(200).json(await loadSurveyStatus(deps));
+  });
+
   interface BodyParserError extends Error {
     type?: string;
   }
@@ -175,7 +208,7 @@ export function createSurveyRouter(deps: SurveyDeps): Router {
 
   // JSON rather than Express's default HTML error page, which the browser
   // script could not read. A malformed or oversized body reaches here as a
-  // body-parser error (express.json() is only mounted on the notes route),
+  // body-parser error (express.json() is only mounted on the notes and remove routes),
   // and must not be reported as a generic 500 -- the browser then shows
   // "internal", which reads like a server bug rather than a bad request.
   router.use('/api/survey', (err: unknown, _req: Request, res: Response, _next: NextFunction) => {

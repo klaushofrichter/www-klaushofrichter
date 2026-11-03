@@ -29,6 +29,21 @@ const IP_SURVEY_CSS = `
   .badge { display: inline-block; padding: 1px 8px; border-radius: 9px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
   .badge-new { background: #065f46; color: #d1fae5; }
   .badge-gone { background: #4b5563; color: #e5e7eb; }
+  button.badge-gone { border: 0; font-family: inherit; cursor: pointer; }
+  button.badge-gone:hover { background: #6b7280; }
+  button.badge-gone:focus-visible { outline: 2px solid #93a5fd; outline-offset: 2px; }
+  #survey-heading:focus { outline: none; }
+  .last-seen { margin-left: 8px; font-size: 11px; }
+  .dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+  .dialog-actions button {
+    height: 32px; padding: 0 16px; border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08);
+    color: #eef0fb; font-size: 13px; cursor: pointer;
+  }
+  .dialog-actions button.danger { background: #7f1d1d; border-color: #b91c1c; }
+  .dialog-actions button:disabled { opacity: 0.5; cursor: default; }
+  .dialog-actions button:focus-visible { outline: 2px solid #93a5fd; outline-offset: 2px; }
+  #remove-error { color: #fca5a5; font-size: 13px; min-height: 1em; margin: 10px 0 0; }
   .status-none { opacity: 0.35; }
   .source { margin-left: 6px; font-size: 10px; opacity: 0.55; text-transform: uppercase; }
   .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -91,6 +106,14 @@ const IP_SURVEY_SCRIPT = `
     var table = document.getElementById('survey-table');
     var tbody = document.getElementById('survey-rows');
     var dialog = document.getElementById('details-dialog');
+    var removeDialog = document.getElementById('remove-dialog');
+    var removeConfirm = document.getElementById('remove-confirm');
+    var removeCancel = document.getElementById('remove-cancel');
+    var removeError = document.getElementById('remove-error');
+    // The MAC the remove dialog is about, or null while it is closed. Kept
+    // as a MAC rather than the button element, because a poll can rebuild
+    // the table (and replace the button) while the dialog is open.
+    var removeMac = null;
 
     // Names, titles and services come from whatever answers on the LAN, so
     // they are untrusted: everything goes in through textContent.
@@ -311,6 +334,54 @@ const IP_SURVEY_SCRIPT = `
       });
     }
 
+    // Built with textContent only: the name, address and vendor come from
+    // the LAN.
+    function openRemove(row) {
+      removeMac = row.mac;
+      document.getElementById('remove-name').textContent = row.name || row.ip;
+      document.getElementById('remove-meta').textContent = 'Last seen at ' + row.ip + ' · ' + row.mac
+        + (row.lastSeenAt ? ' · ' + formatTime(row.lastSeenAt) : '');
+      removeError.textContent = '';
+      removeConfirm.disabled = false;
+      removeDialog.showModal();
+      // Cancel is the safe default, so it takes focus rather than Remove.
+      removeCancel.focus();
+    }
+
+    removeCancel.addEventListener('click', function () { removeDialog.close(); });
+
+    // Escape, Cancel and a finished removal all end here. Focus goes back to
+    // the badge that opened the dialog; if that row is gone from the table
+    // (it was just removed), to the page heading instead of the document body.
+    removeDialog.addEventListener('close', function () {
+      var mac = removeMac;
+      removeMac = null;
+      var opener = mac ? tbody.querySelector('button[data-remove-mac="' + mac + '"]') : null;
+      if (opener) {
+        opener.focus();
+      } else {
+        document.getElementById('survey-heading').focus();
+      }
+    });
+
+    removeConfirm.addEventListener('click', function () {
+      var mac = removeMac;
+      if (!mac) return;
+      removeConfirm.disabled = true;
+      removeError.textContent = '';
+      request('POST', '/api/survey/known-devices/remove', { mac: mac }).then(function (r) {
+        if (r.status !== 200) {
+          var reason = r.body && r.body.error ? r.body.error : ('HTTP ' + r.status);
+          throw new Error(reason);
+        }
+        apply(r.body);
+        removeDialog.close();
+      }).catch(function (err) {
+        removeError.textContent = 'Not removed (' + err.message + ').';
+        removeConfirm.disabled = false;
+      });
+    });
+
     function renderRows() {
       var captured = captureNoteState();
       tbody.textContent = '';
@@ -322,6 +393,18 @@ const IP_SURVEY_SCRIPT = `
         var statusCell = el('td');
         if (row.status === 'unchanged') {
           statusCell.appendChild(el('span', '—', 'status-none'));
+        } else if (row.status === 'gone') {
+          // A real button, so it is reachable and operable by keyboard.
+          var goneButton = el('button', 'gone', 'badge badge-gone');
+          goneButton.type = 'button';
+          goneButton.setAttribute('data-remove-mac', row.mac);
+          goneButton.setAttribute('aria-haspopup', 'dialog');
+          goneButton.setAttribute('aria-label', 'Gone: remove ' + (row.name || row.ip) + ' from the list');
+          goneButton.addEventListener('click', function () { openRemove(row); });
+          statusCell.appendChild(goneButton);
+          if (row.lastSeenAt) {
+            statusCell.appendChild(el('span', 'last seen ' + formatTime(row.lastSeenAt), 'last-seen'));
+          }
         } else {
           statusCell.appendChild(el('span', row.status, 'badge badge-' + row.status));
         }
@@ -392,7 +475,8 @@ const IP_SURVEY_SCRIPT = `
       if (view.source === 'none') {
         statusLine.textContent = 'No saved survey yet. Run a scan.';
       } else if (view.source === 'saved') {
-        statusLine.textContent = 'Saved survey · ' + formatTime(view.savedAt) + ' · ' + view.counts.devices + ' devices';
+        statusLine.textContent = 'Saved survey · ' + formatTime(view.savedAt) + ' · ' + view.counts.devices + ' devices'
+          + (view.counts.gone ? ' · ' + view.counts.gone + ' gone' : '');
       } else {
         var comparedTo = view.hasSaved
           ? 'compared with the saved survey'
@@ -503,6 +587,23 @@ const IP_SURVEY_SCRIPT = `
   })();
 `;
 
+// Cancel comes first and takes focus; Escape closes it too (a native modal
+// dialog), and showModal keeps focus inside while it is open.
+const REMOVE_DIALOG = `
+    <dialog id="remove-dialog" aria-labelledby="remove-title" aria-describedby="remove-explain">
+      <h2 id="remove-title">Remove <span id="remove-name"></span> from the list?</h2>
+      <p id="remove-meta" class="mono"></p>
+      <div id="remove-explain">
+        <p>It is no longer shown as gone. If it answers a later scan it comes back as a normal row, and is kept again once that scan is saved.</p>
+        <p>Its note is kept and reappears if the device returns.</p>
+      </div>
+      <p id="remove-error" role="alert"></p>
+      <div class="dialog-actions">
+        <button id="remove-cancel" type="button">Cancel</button>
+        <button id="remove-confirm" type="button" class="danger">Remove</button>
+      </div>
+    </dialog>`;
+
 const DETAILS_DIALOG = `
     <dialog id="details-dialog" aria-labelledby="details-title">
       <form method="dialog" class="dialog-close"><button type="submit" aria-label="Close">×</button></form>
@@ -531,7 +632,7 @@ export function renderIpSurveyPage(status: SurveyStatus): string {
     extraCss: IP_SURVEY_CSS,
     script: IP_SURVEY_SCRIPT,
     body: `
-      <h1>IP Survey</h1>
+      <h1 id="survey-heading" tabindex="-1">IP Survey</h1>
       <div class="toolbar">
         <button id="scan-button" type="button">Scan</button>
         <button id="save-button" type="button" disabled>Save scan</button>
@@ -561,6 +662,7 @@ export function renderIpSurveyPage(status: SurveyStatus): string {
         </table>
       </div>
       ${DETAILS_DIALOG}
+      ${REMOVE_DIALOG}
       <script type="application/json" id="survey-status">${embedJson(status)}</script>`,
   });
 }
