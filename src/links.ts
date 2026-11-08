@@ -72,6 +72,14 @@ export const links: Link[] = [
     cardColor: CARD_COLORS.stone,
   },
   {
+    id: 'christina-art',
+    title: 'Christina Schwarz Art',
+    url: 'https://christinaschwarz.art',
+    abstract: 'The gallery of the artist Christina Schwarz.',
+    gradient: 'linear-gradient(135deg, #ea580c, #4d7c0f)',
+    cardColor: CARD_COLORS.ember,
+  },
+  {
     id: 'status',
     title: 'Status',
     url: 'https://status.klaushofrichter.net',
