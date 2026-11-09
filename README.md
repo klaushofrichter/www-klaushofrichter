@@ -189,24 +189,69 @@ session store.
 For local development, copy `.env.example` to `.env` and fill in real
 values; `npm run dev` loads it automatically.
 
-## End-to-end smoke test
+## End-to-end tests: browsers, accessibility and speed
 
-`e2e/smoke.spec.ts` (Playwright) checks, against a running instance: that the
-public cards render (asserted by card URL rather than title, since titles are
-editorial and pick up markers like `(archive)`), that auth-gated cards are
-absent for a logged-out visitor, that `/health` reports a well-formed version,
-and that the page header shows it. Run it locally against `npm run dev`/Docker
-with `BASE_URL=http://localhost:8080 npm run test:e2e`. In CI it is the `e2e`
-job of `production-checks.yml`, which runs on pull requests to **both** `main`
-and `production` — on GitHub's runners against a locally started server, not in
-the deploy, where installing a browser exceeds the in-cluster runner's memory
-limit and gets it OOM-killed.
+The site follows kube-setup's "public web pages" baseline
+(`docs/cluster-deployment-requirements.md` §4 there; reference implementation
+`klaushofrichter/christina.art`). The required `e2e` check of
+`production-checks.yml` builds the Docker image, starts it, and runs on
+GitHub's runners (never the in-cluster runner, where installing a browser
+gets it OOM-killed), on pull requests to **both** `main` and `production`:
+
+- **Four browsers** (`playwright.config.ts`): desktop Chromium, a Pixel
+  (Android), an iPhone (WebKit, Safari's engine) and desktop Firefox. One
+  retry is allowed, but `failOnFlakyTests` fails the run if any test needed
+  it.
+- **A walk-through, signed out** (`e2e/site.spec.ts`, `e2e/smoke.spec.ts`):
+  every card and its picture, every link on the page (same-site pages are
+  visited, third-party ones checked for `https`/`_blank`/`noopener`, Login
+  checked to hand over to Google and followed no further), `/public` and its
+  downloads, the 404 page, the refused-sign-in message, keyboard order and
+  focus rings, taps on a phone, no sideways scrolling.
+- **Quality** (`e2e/quality.spec.ts`): layout shift < 0.02, every card holding
+  its place while its picture is held back, a phone byte budget, no console
+  errors or CSP violations, the page complete without JavaScript.
+- **Accessibility** (`e2e/a11y.spec.ts`): axe-core with the WCAG 2.2 A/AA
+  tags and zero violations, on the home page (light and dark scheme, though
+  the site has one design), `/public`, the 404 page, and the signed-in
+  Dashboard and IP Survey including its remove dialog. **Contrast gets a
+  second pass** (`audit()` in `e2e/helpers.ts`): every text here sits on a CSS
+  gradient, which axe reports as "incomplete" instead of checking, so the
+  helper flattens each gradient to each of its colour stops in turn and runs
+  axe's contrast rule again.
+- **Lighthouse** (`scripts/lighthouse-gate.sh`), mobile profile, three runs:
+  performance ≥ 90 on the median run; accessibility, best practices and SEO
+  100 in every run.
+
+Tests tagged `@live` are read-only (GET only, signed out). `live-check.yml`
+runs them plus Lighthouse against https://www.klaushofrichter.net after every
+successful deploy and daily, and checks `/health` names the newest release.
+
+To run the suite locally against the image:
+
+    docker build --build-arg APP_VERSION=2099.01.01.1 -t www-klaushofrichter:e2e .
+    export COOKIE_SECRET=e2e-local-secret GOOGLE_CLIENT_ID=e2e GOOGLE_CLIENT_SECRET=e2e \
+      GOOGLE_REDIRECT_URI=http://localhost:8080/auth/google/callback \
+      ALLOWED_EMAILS=klaus@klaushofrichter.net \
+      SCANNER_URL=http://127.0.0.1:9451 SCANNER_TOKEN=e2e-scanner-token FAKE_SCANNER_PORT=9451
+    docker run -d --rm --name site --network host -e PORT=8080 -e COOKIE_SECRET \
+      -e GOOGLE_CLIENT_ID -e GOOGLE_CLIENT_SECRET -e GOOGLE_REDIRECT_URI \
+      -e ALLOWED_EMAILS -e SCANNER_URL -e SCANNER_TOKEN www-klaushofrichter:e2e
+    npx tsx e2e/fakeScanner.ts &
+    npx playwright install chromium firefox webkit   # WebKit also needs `--with-deps` (sudo)
+    npx playwright test
+    scripts/lighthouse-gate.sh http://localhost:8080/
+
+The IP Survey story in `e2e/dashboard.spec.ts` expects a fresh server (its
+saved survey is state), so restart the container before a second run. It runs
+in desktop Chromium only, for the same reason.
 
 `e2e/dashboard.spec.ts` covers the Dashboard signed out and signed in, and the
 IP Survey against `e2e/fakeScanner.ts`: scan, numeric IP sort, the Details
 dialog, Save, and the new/gone comparison. Signed-in specs sign their own
 session cookie (`e2e/session.ts`) with the server's `COOKIE_SECRET`, so both
-must be set to the same value. To run the whole suite locally:
+must be set to the same value. To run the whole suite against `npm start`
+instead of the image:
 
     mkdir -p "$TMPDIR/e2e-surveys" && rm -rf "$TMPDIR/e2e-surveys"/*
     export COOKIE_SECRET=e2e-local-secret GOOGLE_CLIENT_ID=e2e GOOGLE_CLIENT_SECRET=e2e \

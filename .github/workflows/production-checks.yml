@@ -37,11 +37,31 @@ jobs:
       - run: npm audit --audit-level=high
 
   e2e:
-    # The Playwright suite runs here, on GitHub's runners, rather than in the
-    # deploy: installing a browser on the in-cluster self-hosted runner
-    # OOM-kills it. Against a locally started server, so a broken build is
-    # caught before it is merged rather than after it is live.
+    # The release gate, in a browser, on GitHub's runners: installing a
+    # browser on the in-cluster self-hosted runner (512Mi) OOM-kills it.
+    #
+    # It tests the Docker image this commit builds, the same artifact the
+    # deploy ships, in four browsers: desktop Chrome, an Android phone, an
+    # iPhone (WebKit, i.e. Safari) and desktop Firefox. Then Lighthouse,
+    # Google's PageSpeed engine, on a phone profile. One job, so the required
+    # check stays the single `e2e` context. This is kube-setup's "public web
+    # pages" baseline (docs/cluster-deployment-requirements.md, §4), adapted
+    # from klaushofrichter/christina.art.
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      # Shared by the server and the signed-in specs, which sign their own
+      # session cookie with it (e2e/session.ts). Not a real secret.
+      COOKIE_SECRET: e2e-cookie-secret-not-used-for-anything-real
+      GOOGLE_CLIENT_ID: e2e
+      GOOGLE_CLIENT_SECRET: e2e
+      GOOGLE_REDIRECT_URI: http://localhost:8080/auth/google/callback
+      ALLOWED_EMAILS: klaus@klaushofrichter.net
+      # The survey specs run against e2e/fakeScanner.ts. CI never scans a
+      # real network.
+      SCANNER_URL: http://127.0.0.1:9451
+      SCANNER_TOKEN: e2e-scanner-token
+      FAKE_SCANNER_PORT: '9451'
     steps:
       - uses: actions/checkout@v7
 
@@ -52,43 +72,65 @@ jobs:
 
       - run: npm ci
 
-      - run: npx playwright install --with-deps chromium
-
-      - run: npm run build
-
-      - name: Start the server and fake scanner, run the e2e suite
-        env:
-          # Shared by the server and the signed-in specs, which sign their own
-          # session cookie with it (e2e/session.ts). Not a real secret.
-          COOKIE_SECRET: e2e-cookie-secret-not-used-for-anything-real
-          GOOGLE_CLIENT_ID: e2e
-          GOOGLE_CLIENT_SECRET: e2e
-          GOOGLE_REDIRECT_URI: http://localhost:8080/auth/google/callback
-          ALLOWED_EMAILS: klaus@klaushofrichter.net
-          # The survey specs run against e2e/fakeScanner.ts. CI never scans a
-          # real network.
-          SCANNER_URL: http://127.0.0.1:9451
-          SCANNER_TOKEN: e2e-scanner-token
-          FAKE_SCANNER_PORT: '9451'
-          SURVEY_DIR: ${{ runner.temp }}/surveys
+      # Host networking, so the server in the container reaches the fake
+      # scanner on the runner's 127.0.0.1 exactly as `npm start` did.
+      - name: Build and start the image, and the fake scanner
         run: |
           set -euo pipefail
-          npx tsx e2e/fakeScanner.ts &
-          echo $! > /tmp/fake-scanner.pid
-          npm start &
-          echo $! > /tmp/server.pid
-          for i in $(seq 1 20); do
+          docker build --build-arg APP_VERSION=2099.01.01.1 -t www-klaushofrichter:e2e .
+          docker run -d --name site --network host -e PORT=8080 \
+            -e COOKIE_SECRET -e GOOGLE_CLIENT_ID -e GOOGLE_CLIENT_SECRET \
+            -e GOOGLE_REDIRECT_URI -e ALLOWED_EMAILS -e SCANNER_URL -e SCANNER_TOKEN \
+            www-klaushofrichter:e2e
+          nohup npx tsx e2e/fakeScanner.ts > fake-scanner.log 2>&1 &
+          for i in $(seq 1 30); do
             if curl -sf http://localhost:8080/health >/dev/null && curl -sf http://127.0.0.1:9451/health >/dev/null; then
               break
             fi
-            echo "waiting for server and fake scanner (${i}/20)"; sleep 2
+            echo "waiting for the image and the fake scanner (${i}/30)"; sleep 1
           done
-          curl -sf http://localhost:8080/health >/dev/null \
-            || { echo "::error::server did not come up"; exit 1; }
+          curl -sf http://localhost:8080/health | grep -q '"version":"2099.01.01.1"' \
+            || { echo "::error::the image did not come up with the stamped version"; docker logs site; exit 1; }
           curl -sf http://127.0.0.1:9451/health >/dev/null \
-            || { echo "::error::fake scanner did not come up"; exit 1; }
-          npm run test:e2e
-          kill "$(cat /tmp/server.pid)" "$(cat /tmp/fake-scanner.pid)" || true
+            || { echo "::error::fake scanner did not come up"; cat fake-scanner.log; exit 1; }
+
+      # `--with-deps` runs `apt-get update`, which also reads the Google
+      # Chrome source the runner image ships; one bad index there fails the
+      # whole job (it did, 2026-09-09, in art), so drop that source. The Chrome
+      # binary itself stays: Lighthouse uses it below.
+      - name: Install the browsers
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list \
+                     /etc/apt/sources.list.d/google-chrome.sources
+          npx playwright install --with-deps chromium webkit firefox
+
+      # failOnFlakyTests (playwright.config.ts) fails this step if any test
+      # passed only on its retry.
+      - name: Walk the site in four browsers
+        env:
+          BASE_URL: http://localhost:8080
+          EXPECT_VERSION: 2099.01.01.1
+        run: npx playwright test
+
+      - name: Lighthouse (Google PageSpeed) on a phone
+        run: scripts/lighthouse-gate.sh http://localhost:8080/
+
+      - name: Keep the reports when something failed
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-reports
+          path: |
+            playwright-report/
+            test-results/
+            lighthouse-report.report.html
+          retention-days: 14
+
+      - name: Server and fake scanner logs when something failed
+        if: failure()
+        run: |
+          docker logs site || true
+          cat fake-scanner.log || true
 
   codeql:
     runs-on: ubuntu-latest

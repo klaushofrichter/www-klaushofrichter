@@ -10,3 +10,4 @@ playwright-report
 *.md
 !CHANGELOG.md
 data
+lighthouse-report*
