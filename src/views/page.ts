@@ -2,7 +2,7 @@ import { escapeHtml } from './escapeHtml';
 import { BASE_CSS, FAVICON_LINKS, HEADER_CSS, renderHeaderActions } from './layout';
 import { links, Link } from '../links';
 import { hasImage } from '../refreshImages';
-import { hasStaticCard, staticCardUrl } from '../staticCards';
+import { hasStaticCard, staticCardSize, staticCardUrl } from '../staticCards';
 
 const ABOUT_TITLE = 'Klaus Hofrichter';
 const ABOUT_BODY =
@@ -25,10 +25,21 @@ function cardImageSrc(link: Link): string | null {
   return null;
 }
 
-function renderCard(link: Link): string {
+// Cards from this index on are below the fold on a phone and on most
+// desktops, so they load lazily; the first is the likely LCP element and is
+// fetched first.
+const EAGER_CARDS = 4;
+
+function renderCard(link: Link, index: number): string {
   const imageSrc = cardImageSrc(link);
+  // width/height give the aspect ratio before the file arrives (static cards
+  // only: a dynamic og:image's size is not known up front). The 110px box
+  // already reserves the space; these keep it that way if the CSS changes.
+  const size = hasStaticCard(link.id) ? staticCardSize(link.id) : null;
+  const sizeAttrs = size ? ` width="${size.width}" height="${size.height}"` : '';
+  const loading = index === 0 ? ' fetchpriority="high"' : index >= EAGER_CARDS ? ' loading="lazy"' : '';
   const imageMarkup = imageSrc
-    ? `<img src="${escapeHtml(imageSrc)}" alt="${escapeHtml(link.title)}" class="card-image-img" />`
+    ? `<img src="${escapeHtml(imageSrc)}" alt="${escapeHtml(link.title)}" class="card-image-img"${sizeAttrs}${loading} decoding="async" />`
     : '';
   return `
         <div class="card" style="background: ${link.cardColor};">
@@ -48,7 +59,7 @@ const PAGE_CSS = `
   .about { max-width: 640px; margin: 0 auto 40px; text-align: center; }
   .about-avatar {
     width: 72px; height: 72px; border-radius: 50%;
-    background: url('/assets/apple-touch-icon.png') center / cover;
+    background: url('/assets/avatar.webp') center / cover;
     margin: 0 auto 16px;
   }
   .about h1 { font-size: 26px; margin: 0 0 10px; }
@@ -70,8 +81,12 @@ const PAGE_CSS = `
   .card-body { padding: 14px; }
   .card-body h2 { margin: 0; font-size: 14px; }
   .card-body p { font-size: 12px; opacity: 0.7; margin: 5px 0 0; }
-  .card-link { display: inline-block; margin-top: 10px; font-size: 11px; color: #93a5fd; text-decoration: none; }
+  .card-link { display: inline-block; margin-top: 10px; font-size: 11px; color: #a5b4fc; text-decoration: none; }
   .card-link:hover { text-decoration: underline; }
+  /* The card clips its corners (overflow: hidden), which also clipped the
+     browser's focus ring on the picture link; draw it inside instead. */
+  .card-image:focus-visible { outline: 2px solid #a5b4fc; outline-offset: -3px; }
+  .card-link:focus-visible { outline: 2px solid #a5b4fc; outline-offset: 2px; border-radius: 2px; }
   .site-footer {
     margin: 48px 0 0; padding-top: 20px;
     border-top: 1px solid rgba(255,255,255,0.1);
@@ -134,7 +149,7 @@ const AUTH_ERROR_SCRIPT = `
 
 export function renderPage(isAuthenticated: boolean): string {
   const visibleLinks = links.filter((link) => !link.requiresAuth || isAuthenticated);
-  const cards = visibleLinks.map(renderCard).join('\n');
+  const cards = visibleLinks.map((link, i) => renderCard(link, i)).join('\n');
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -166,7 +181,7 @@ export function renderPage(isAuthenticated: boolean): string {
   </head>
   <body>
     ${renderHeaderActions({ isAuthenticated, showRefresh: isAuthenticated })}
-    <div id="refresh-message"></div>
+    <div id="refresh-message" role="status" aria-live="polite"></div>
     <div class="page">
       <header class="about">
         <div class="about-avatar"></div>
