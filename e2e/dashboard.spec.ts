@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { sessionCookie } from './session';
+import { audit } from './helpers';
 
 test.describe('signed out', () => {
   test('the homepage has no Dashboard button', async ({ page }) => {
@@ -175,6 +176,8 @@ test.describe('IP survey against the fake scanner', () => {
     await note.press('Enter');
     await expect(printerRow.locator('.note-saved-hint')).toHaveText('Saved');
     if (shots) await page.screenshot({ path: `${shots}/ip-survey-gone-row.png`, fullPage: true });
+    // WCAG 2.2 AA with a gone row on screen: the dimmed row was 1.9:1.
+    await audit(page);
 
     // The badge is a real button: reachable by keyboard and opened with Enter.
     await badge.focus();
@@ -187,6 +190,7 @@ test.describe('IP survey against the fake scanner', () => {
     // Cancel is the safe default.
     await expect(page.locator('#remove-cancel')).toBeFocused();
     if (shots) await page.screenshot({ path: `${shots}/ip-survey-remove-dialog.png` });
+    await audit(page);
 
     // Escape cancels, and focus goes back to the badge.
     await page.keyboard.press('Escape');

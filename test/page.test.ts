@@ -9,6 +9,7 @@ vi.mock('../src/refreshImages', () => ({
 vi.mock('../src/staticCards', () => ({
   hasStaticCard: vi.fn().mockReturnValue(false),
   staticCardUrl: vi.fn((id: string) => `/assets/cards/${id}.webp`),
+  staticCardSize: vi.fn().mockReturnValue({ width: 800, height: 420 }),
 }));
 
 import { hasImage } from '../src/refreshImages';
@@ -61,6 +62,30 @@ describe('renderPage card images', () => {
     expect(html).toContain(
       '<div class="card" style="background: linear-gradient(160deg, #1e2a4a, #2d1b4e);">'
     );
+  });
+});
+
+describe('renderPage card picture loading', () => {
+  beforeEach(() => {
+    mockedHasStaticCard.mockReset();
+    mockedHasStaticCard.mockReturnValue(true);
+  });
+
+  it('gives every static card picture its size, fetches the first one first and the rest from the fifth lazily', () => {
+    const html = renderPage(false);
+    const imgs = html.match(/<img [^>]*class="card-image-img"[^>]*>/g) ?? [];
+    expect(imgs.length).toBeGreaterThan(5);
+    for (const img of imgs) {
+      expect(img).toContain('width="800" height="420"');
+      expect(img).toContain('decoding="async"');
+    }
+    expect(imgs[0]).toContain('fetchpriority="high"');
+    for (const img of imgs.slice(1, 4)) expect(img).not.toContain('loading=');
+    for (const img of imgs.slice(4)) expect(img).toContain('loading="lazy"');
+  });
+
+  it('announces the sign-in and refresh messages to screen readers', () => {
+    expect(renderPage(false)).toContain('<div id="refresh-message" role="status" aria-live="polite"></div>');
   });
 });
 

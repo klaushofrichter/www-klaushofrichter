@@ -12,6 +12,7 @@ vi.mock('../src/refreshImages', () => ({
 vi.mock('../src/staticCards', () => ({
   hasStaticCard: vi.fn().mockReturnValue(false),
   staticCardUrl: vi.fn((id: string) => `/assets/cards/${id}.webp`),
+  staticCardSize: vi.fn().mockReturnValue({ width: 800, height: 420 }),
 }));
 
 import { refreshAllImages } from '../src/refreshImages';
