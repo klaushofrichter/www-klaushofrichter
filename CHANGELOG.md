@@ -21,6 +21,27 @@ this file is where notes are written *before* a release.
 - IP Survey: devices that were online but are not now stay listed as *gone*,
   with when they were last seen, instead of being forgotten when a scan without
   them is saved. Clicking *gone* removes one from the list (its note is kept).
+- Accessibility and speed, from kube-setup's "public web pages" baseline:
+  - Text contrast now meets WCAG 2.2 AA everywhere. Visible: the version
+    label and the Login / Dashboard / refresh buttons in the top corner are
+    brighter (opacity 0.6 instead of 0.25 and 0.35; they were 2.1:1 and
+    2.9:1), card links are a shade lighter (`#a5b4fc`, was 4.4:1 on the grey
+    cards), and gone rows in the IP Survey are grey text instead of faded
+    (the gone badge was 1.9:1).
+  - The card picture links show a focus ring when tabbed to (the card's
+    rounded corners clipped it before).
+  - The "Login failed" message is announced to screen readers.
+  - An unknown address gets a 404 page in the site's style with a link home,
+    instead of Express's bare "Cannot GET".
+  - Pages are sent gzip-compressed, card pictures below the first four load
+    lazily and carry their size, and the avatar is a 2 KB WebP instead of a
+    34 KB PNG.
+- Checks: the required `e2e` check now tests the Docker image in four
+  browsers (desktop Chromium, Android, iPhone/WebKit, desktop Firefox; a test
+  that passes only on retry fails the run), with axe-core WCAG 2.2 AA audits
+  and a Lighthouse gate on a phone profile. A new `live-check.yml` runs the
+  read-only part and Lighthouse against the live site after each deploy and
+  daily.
 
 ## 2026-08-20
 

@@ -28,9 +28,9 @@ export const HEADER_CSS = `
   }
   #app-version {
     font-size: 11px; color: #eef0fb; letter-spacing: 0.02em;
-    opacity: 0.25; transition: opacity 0.2s;
+    opacity: 0.6; transition: opacity 0.2s;
   }
-  .header-actions:hover #app-version { opacity: 0.6; }
+  .header-actions:hover #app-version { opacity: 0.85; }
   a#app-version { text-decoration: none; }
   a#app-version:hover { opacity: 1; text-decoration: underline; }
   #auth-button, #dashboard-button {
@@ -39,17 +39,18 @@ export const HEADER_CSS = `
     border: 1px solid rgba(255,255,255,0.15);
     background: rgba(255,255,255,0.06);
     color: #eef0fb; font-size: 12px; text-decoration: none;
-    opacity: 0.35; transition: opacity 0.2s;
+    opacity: 0.6; transition: opacity 0.2s;
   }
-  #auth-button:hover, #dashboard-button:hover { opacity: 1; }
+  #auth-button:hover, #dashboard-button:hover,
+  #auth-button:focus-visible, #dashboard-button:focus-visible { opacity: 1; }
   #refresh-button {
     width: 36px; height: 36px; border-radius: 50%;
     border: 1px solid rgba(255,255,255,0.15);
     background: rgba(255,255,255,0.06);
     color: #eef0fb; font-size: 16px; cursor: pointer;
-    opacity: 0.35; transition: opacity 0.2s;
+    opacity: 0.6; transition: opacity 0.2s;
   }
-  #refresh-button:hover { opacity: 1; }
+  #refresh-button:hover, #refresh-button:focus-visible { opacity: 1; }
   #refresh-button.loading { animation: spin 1s linear infinite; opacity: 1; }
   @keyframes spin { to { transform: rotate(360deg); } }
 `;

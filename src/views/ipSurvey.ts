@@ -25,7 +25,10 @@ const IP_SURVEY_CSS = `
   th button { background: none; border: 0; color: inherit; font: inherit; font-weight: 600; cursor: pointer; padding: 0; }
   th[aria-sort="ascending"] button::after { content: ' ▲'; font-size: 10px; }
   th[aria-sort="descending"] button::after { content: ' ▼'; font-size: 10px; }
-  tr.gone td { opacity: 0.45; }
+  /* Grey text rather than a faded row: opacity 0.45 also faded the gone
+     badge to 1.9:1 contrast (WCAG 2.2 AA needs 4.5:1). */
+  tr.gone td { color: #9ca3af; }
+  tr.gone .source { opacity: 0.85; }
   .badge { display: inline-block; padding: 1px 8px; border-radius: 9px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
   .badge-new { background: #065f46; color: #d1fae5; }
   .badge-gone { background: #4b5563; color: #e5e7eb; }

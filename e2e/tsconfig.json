@@ -1,0 +1,13 @@
+{
+  // The Playwright specs, the fake scanner and the config. Their page.evaluate
+  // callbacks run in the browser, so this adds the DOM types that the
+  // server's own check (tsconfig.check.json) deliberately leaves out.
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node"]
+  },
+  "include": [".", "../playwright.config.ts"]
+}
