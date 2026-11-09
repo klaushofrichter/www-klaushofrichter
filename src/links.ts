@@ -80,6 +80,14 @@ export const links: Link[] = [
     cardColor: CARD_COLORS.ember,
   },
   {
+    id: 'cams',
+    title: 'Cams',
+    url: 'https://cams.skylar.technology',
+    abstract: 'A private, open-source camera system: live video and AI-labelled events.',
+    gradient: 'linear-gradient(135deg, #0b1220, #22d3ee)',
+    cardColor: CARD_COLORS.onyx,
+  },
+  {
     id: 'status',
     title: 'Status',
     url: 'https://status.klaushofrichter.net',
