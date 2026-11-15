@@ -88,6 +88,14 @@ export const links: Link[] = [
     cardColor: CARD_COLORS.onyx,
   },
   {
+    id: 'ge150pro-editor',
+    title: 'GE150 Pro Editor',
+    url: 'https://klaushofrichter.github.io/ge150pro-editor/',
+    abstract: 'A browser editor for the Mooer GE150 Pro guitar pedal: presets, effects, backups. Unofficial.',
+    gradient: 'linear-gradient(135deg, #2b2d31, #a3cc1a)',
+    cardColor: CARD_COLORS.slate,
+  },
+  {
     id: 'status',
     title: 'Status',
     url: 'https://status.klaushofrichter.net',
