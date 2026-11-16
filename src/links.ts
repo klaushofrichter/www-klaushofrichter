@@ -6,6 +6,16 @@ export interface Link {
   gradient: string;
   cardColor: string;
   requiresAuth?: boolean;
+  // An old site kept for reference. The page always lists active public cards first,
+  // then archived ones, then the private (requiresAuth) cards: see orderLinks().
+  archived?: boolean;
+}
+
+// The page's order, whatever the order of the list below: active public cards, then
+// archived public cards, then private cards. The list order applies within each group.
+export function orderLinks(list: Link[]): Link[] {
+  const rank = (l: Link) => (l.requiresAuth ? 2 : l.archived ? 1 : 0);
+  return list.map((l, i) => ({ l, i })).sort((a, b) => rank(a.l) - rank(b.l) || a.i - b.i).map((x) => x.l);
 }
 
 // Fixed dark-tint palette for full-card backgrounds. Reused across cards by
@@ -110,6 +120,7 @@ export const links: Link[] = [
     abstract: 'An earlier portfolio and blog archive.',
     gradient: 'linear-gradient(135deg, #6b7280, #9ca3af)',
     cardColor: CARD_COLORS.ember,
+    archived: true,
   },
   {
     id: 'threepuppies',
@@ -118,6 +129,7 @@ export const links: Link[] = [
     abstract: 'A small site about three very good dogs.',
     gradient: 'linear-gradient(135deg, #059669, #10b981)',
     cardColor: CARD_COLORS.forest,
+    archived: true,
   },
   {
     id: 'blog',
@@ -126,6 +138,7 @@ export const links: Link[] = [
     abstract: 'An older personal blog: photos, notes, and a few things I came across. Last post 2024.',
     gradient: 'linear-gradient(135deg, #7c3aed, #fb7185)',
     cardColor: CARD_COLORS.indigo,
+    archived: true,
   },
   {
     id: 'skylardog',
@@ -134,6 +147,7 @@ export const links: Link[] = [
     abstract: 'Monthly photos of Skylar, the Doberman with ears and tail. 2014 to 2016.',
     gradient: 'linear-gradient(135deg, #3f2a1d, #4b5563)',
     cardColor: CARD_COLORS.slate,
+    archived: true,
   },
   {
     id: 'gametable',
