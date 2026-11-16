@@ -6,9 +6,10 @@
  */
 import { test, expect } from '@playwright/test';
 import { watchProblems, reportCspViolations, scrollThrough, expectAllPicturesLoaded } from './helpers';
-import { links } from '../src/links';
+import { links, orderLinks } from '../src/links';
 
-const publicLinks = links.filter((l) => !l.requiresAuth);
+// In page order (active public, then archived), as the page renders them.
+const publicLinks = orderLinks(links).filter((l) => !l.requiresAuth);
 
 test('@live nothing jumps while the page loads (layout shift)', async ({ page }) => {
   await page.addInitScript(() => {

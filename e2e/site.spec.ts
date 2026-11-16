@@ -6,12 +6,13 @@
  */
 import { test, expect, Page, Locator } from '@playwright/test';
 import { watchProblems, reportCspViolations, scrollThrough, expectAllPicturesLoaded } from './helpers';
-import { links } from '../src/links';
+import { links, orderLinks } from '../src/links';
 
 /** Set by live-check.yml to the release just deployed. */
 const EXPECT_VERSION = process.env.EXPECT_VERSION;
 
-const publicLinks = links.filter((l) => !l.requiresAuth);
+// In page order (active public, then archived), as the page renders them.
+const publicLinks = orderLinks(links).filter((l) => !l.requiresAuth);
 
 async function press(page: Page, isMobile: boolean, locator: Locator) {
   if (isMobile) await locator.tap();
