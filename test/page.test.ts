@@ -201,7 +201,8 @@ describe('renderPage social preview tags', () => {
 
 describe('renderPage card order', () => {
   // Cards carry no id attribute; map each card's <h2> title back to its link.
-  const unescape = (t: string) => t.replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&quot;/g, '"');
+  // &amp; last, so an escaped "&amp;#39;" stays "&#39;" instead of being decoded twice.
+  const unescape = (t: string) => t.replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&');
   const ids = (html: string) =>
     [...html.matchAll(/<div class="card-body">\s*<h2>([^<]*)<\/h2>/g)].map(
       (m) => links.find((l) => l.title === unescape(m[1]))!.id,
