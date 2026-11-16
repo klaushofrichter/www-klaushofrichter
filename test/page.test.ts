@@ -198,3 +198,29 @@ describe('renderPage social preview tags', () => {
     expect(html).toContain(`<meta property="og:image:height" content="${height}" />`);
   });
 });
+
+describe('renderPage card order', () => {
+  // Cards carry no id attribute; map each card's <h2> title back to its link.
+  const unescape = (t: string) => t.replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&quot;/g, '"');
+  const ids = (html: string) =>
+    [...html.matchAll(/<div class="card-body">\s*<h2>([^<]*)<\/h2>/g)].map(
+      (m) => links.find((l) => l.title === unescape(m[1]))!.id,
+    );
+
+  it('lists active public cards, then archived ones, then private ones', () => {
+    for (const signedIn of [false, true]) {
+      const order = ids(renderPage(signedIn));
+      const rank = (id: string) => {
+        const link = links.find((l) => l.id === id)!;
+        return link.requiresAuth ? 2 : link.archived ? 1 : 0;
+      };
+      const ranks = order.map(rank);
+      expect(ranks, order.join(',')).toEqual([...ranks].sort((a, b) => a - b));
+    }
+  });
+
+  it('shows Game Table before the archive cards on the public page', () => {
+    const order = ids(renderPage(false));
+    expect(order.indexOf('gametable')).toBeLessThan(order.indexOf('portfolio2017'));
+  });
+});

@@ -1,6 +1,6 @@
 import { escapeHtml } from './escapeHtml';
 import { BASE_CSS, FAVICON_LINKS, HEADER_CSS, renderHeaderActions } from './layout';
-import { links, Link } from '../links';
+import { links, Link, orderLinks } from '../links';
 import { hasImage } from '../refreshImages';
 import { hasStaticCard, staticCardSize, staticCardUrl } from '../staticCards';
 
@@ -148,7 +148,7 @@ const AUTH_ERROR_SCRIPT = `
 `;
 
 export function renderPage(isAuthenticated: boolean): string {
-  const visibleLinks = links.filter((link) => !link.requiresAuth || isAuthenticated);
+  const visibleLinks = orderLinks(links).filter((link) => !link.requiresAuth || isAuthenticated);
   const cards = visibleLinks.map((link, i) => renderCard(link, i)).join('\n');
   return `<!doctype html>
 <html lang="en">
