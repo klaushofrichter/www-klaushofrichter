@@ -18,6 +18,10 @@ this file is where notes are written *before* a release.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
+- CI: the dependency audit lets one advisory through until 2026-12-17:
+  picomatch's ReDoS (GHSA-fc5q-39xc-vjpf), which has no fixed version yet and
+  reaches only the test and build tools, not the running service.
+  `scripts/npm-audit-allow.json` holds the entry; after that date it blocks again.
 - IP Survey: devices that were online but are not now stay listed as *gone*,
   with when they were last seen, instead of being forgotten when a scan without
   them is saved. Clicking *gone* removes one from the list (its note is kept).
