@@ -90,6 +90,14 @@ export const links: Link[] = [
     cardColor: CARD_COLORS.ember,
   },
   {
+    id: 'chili',
+    title: 'Chili con “Carne”',
+    url: 'https://www.klaushofrichter.net/chili/',
+    abstract: 'A mild, cozy chili made with turkey: ingredients, recipe and toppings.',
+    gradient: 'linear-gradient(135deg, #b8321f, #e0a526)',
+    cardColor: CARD_COLORS.ember,
+  },
+  {
     id: 'cams',
     title: 'Cams',
     url: 'https://cams.skylar.technology',
