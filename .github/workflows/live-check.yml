@@ -73,6 +73,14 @@ jobs:
       - name: Lighthouse (Google PageSpeed) on the live site
         run: scripts/lighthouse-gate.sh https://www.klaushofrichter.net/
 
+      # The /chili mini-site is its own page with its own pictures and fonts;
+      # it shipped under the floors (performance 86, accessibility 95) while
+      # this step checked only the home page (2026-11-22).
+      - name: Lighthouse on the /chili mini-site
+        env:
+          LH_OUT: lighthouse-chili
+        run: scripts/lighthouse-gate.sh https://www.klaushofrichter.net/chili/
+
       - name: Keep the reports when something failed
         if: failure()
         uses: actions/upload-artifact@v7
@@ -82,4 +90,5 @@ jobs:
             playwright-report/
             test-results/
             lighthouse-report.report.html
+            lighthouse-chili.report.html
           retention-days: 30

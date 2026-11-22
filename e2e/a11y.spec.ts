@@ -32,6 +32,18 @@ test('@live the public files page meets WCAG 2.2 AA', async ({ page }) => {
   await audit(page);
 });
 
+// The /chili mini-site (sites/chili) shipped with two contrast failures the
+// live check never looked at, because it audited only the home page
+// (2026-11-22). Both schemes, like the home page.
+for (const scheme of ['light', 'dark'] as const) {
+  test(`@live the /chili mini-site meets WCAG 2.2 AA (${scheme})`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' });
+    await page.goto('/chili/');
+    await scrollThrough(page);
+    await audit(page);
+  });
+}
+
 test('@live the 404 page meets WCAG 2.2 AA', async ({ page }) => {
   await page.goto('/does-not-exist');
   await audit(page);
