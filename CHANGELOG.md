@@ -18,6 +18,8 @@ this file is where notes are written *before* a release.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
+- `/chili`: the placeholder is replaced by the full Chili con "Carne" page (made with turkey): a mobile-first page listing the organic ingredients with product photos, the toppings, the recipe, and serving and storage notes.
+
 - New public mini-site at `/chili` (Chili con carne), for now a placeholder page.
   Its QR code (`sites/chili/chili-qr.png`, `.svg`) points at
   `https://klaushofrichter.net/chili`, which forwards to the www address.
