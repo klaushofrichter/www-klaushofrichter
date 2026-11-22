@@ -18,6 +18,8 @@ this file is where notes are written *before* a release.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
+- Hostinger card (signed-in dashboard): a new background picture, Hostinger's
+  own banner, in place of the old one.
 - CI: the dependency audit lets one advisory through until 2026-12-17:
   picomatch's ReDoS (GHSA-fc5q-39xc-vjpf), which has no fixed version yet and
   reaches only the test and build tools, not the running service.
