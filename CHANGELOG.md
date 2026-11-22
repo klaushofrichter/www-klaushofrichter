@@ -18,6 +18,8 @@ this file is where notes are written *before* a release.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
+- `/chili`: meets the Lighthouse floors on phones. Text contrast is fixed (the green labels, the COOL pill and the step numbers), the hero image is preloaded, the fonts no longer block rendering, the pictures are sized for phones (page weight 989 KB to about 600 KB), and every image has explicit dimensions.
+
 - `/chili`: ingredient quantities (2× turkey, 4× diced tomatoes, 4× beans, 2× red bell peppers) and tomato paste as its own ingredient; the quantities are noted as being for one large 8-quart pot.
 
 - `/chili`: the placeholder is replaced by the full Chili con "Carne" page (made with turkey): a mobile-first page listing the organic ingredients with product photos, the toppings, the recipe, and serving and storage notes.
