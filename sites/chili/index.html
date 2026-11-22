@@ -13,9 +13,12 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌶️</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" as="image" href="img/border.jpg" fetchpriority="high">
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,800;1,9..144,500&family=Nunito+Sans:wght@400;600;700;800&family=Caveat:wght@600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,800;1,9..144,500&family=Nunito+Sans:wght@400;600;700;800&family=Caveat:wght@600;700&display=swap"></noscript>
+<link rel="preload" as="image" href="img/border.webp" type="image/webp" fetchpriority="high">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,800;1,500&family=Nunito+Sans:wght@400;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<!-- Caveat is subset to the characters of the .sub, h2 and .enjoy texts (text=...).
+     Adding new text in Caveat? Add its characters to this URL, or they fall back. -->
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap&text=%20%21%26EHMSWadehijkmnorstuvwy%E2%80%99%E2%80%A6" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,800;1,500&family=Nunito+Sans:wght@400;600;700;800&display=swap"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap&text=%20%21%26EHMSWadehijkmnorstuvwy%E2%80%99%E2%80%A6"></noscript>
 <style>
   :root{
     color-scheme: light;
@@ -41,7 +44,7 @@
 
   /* hero */
   .hero{position:relative;aspect-ratio:2/3;max-height:900px;
-    background:url("img/border.jpg") center/cover no-repeat;
+    background:url("img/border.webp") center/cover no-repeat;
     display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:12% 17% 14%}
   .eyebrow{font-weight:800;font-size:clamp(10px,2.8vw,13px);letter-spacing:.18em;text-transform:uppercase;color:var(--sage);
     background:rgba(247,236,217,.85);padding:3px 10px;border-radius:99px}
@@ -49,7 +52,7 @@
     font-size:clamp(44px,15vw,76px);letter-spacing:-.01em}
   h1 .con{display:block;font-style:italic;font-weight:500;color:var(--terracotta);font-size:.56em;margin-top:.08em}
   h1 .q{color:var(--mustard)}
-  .sub{font-family:"Caveat",cursive;font-size:clamp(24px,7vw,34px);color:var(--bean);line-height:1;margin-top:.1em}
+  .sub{font-family:"Caveat",cursive;font-weight:700;font-size:clamp(24px,7vw,34px);color:var(--bean);line-height:1;margin-top:.1em}
   .photo{position:relative;margin-top:5%;width:min(58vw,300px);aspect-ratio:1}
   .photo img{width:100%;height:100%;object-fit:cover;border-radius:50%;border:6px solid #fff;
     box-shadow:0 0 0 2px var(--terracotta),0 10px 24px rgba(74,35,24,.3)}
@@ -71,7 +74,7 @@
   .steps li{display:flex;align-items:center;gap:14px;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;font-weight:700;font-size:17px}
   .steps li::before{counter-increment:s;content:counter(s);flex:none;width:34px;height:34px;border-radius:50%;background:var(--paprika);color:#fff;
     display:flex;align-items:center;justify-content:center;font-weight:800}
-  .steps .enjoy{font-family:"Caveat",cursive;font-size:28px;color:var(--paprika);line-height:1}
+  .steps .enjoy{font-family:"Caveat",cursive;font-weight:700;font-size:28px;color:var(--paprika);line-height:1}
 
   .toppings{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
   .top{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:12px 8px 14px;text-align:center;display:flex;flex-direction:column;align-items:center}
@@ -139,7 +142,7 @@
     <h1>Chili<span class="con">con <span class="q">“</span>Carne<span class="q">”</span></span></h1>
     <div class="sub">…made with turkey</div>
     <div class="photo">
-      <img src="img/chili.jpg" alt="A pot of turkey chili with kidney beans, corn, tomatoes and red peppers" width="640" height="629" fetchpriority="high">
+      <img src="img/chili-640.webp" srcset="img/chili-400.webp 400w, img/chili-640.webp 640w" sizes="(max-width: 520px) 58vw, 300px" alt="A pot of turkey chili with kidney beans, corn, tomatoes and red peppers" width="640" height="629">
       <div class="badge"><b>ORGANIC</b><span>turkey</span></div>
     </div>
     <div class="heat" aria-label="Heat level: mild, one out of three">
@@ -165,17 +168,17 @@
     <p class="lead">The chili is mild on purpose. Turn it up (or cool it down) with these.</p>
     <div class="toppings">
       <div class="top">
-        <div class="pic"><img src="img/cholula.jpg" width="260" height="260" alt="Cholula Original Hot Sauce bottle" loading="lazy"></div>
+        <div class="pic"><img src="img/cholula.webp" width="260" height="260" alt="Cholula Original Hot Sauce bottle" loading="lazy"></div>
         <b>Hot Sauce</b><small>Cholula Original. A few dashes go a long way.</small>
         <span class="pill hot">Heat</span>
       </div>
       <div class="top">
-        <div class="pic"><img src="img/sour-cream.jpg" width="260" height="107" alt="Organic Valley Organic Sour Cream tub" loading="lazy"></div>
+        <div class="pic"><img src="img/sour-cream.webp" width="260" height="107" alt="Organic Valley Organic Sour Cream tub" loading="lazy"></div>
         <b>Sour Cream</b><small>Organic Valley. Cool and creamy.</small>
         <span class="pill cool">Cool</span>
       </div>
       <div class="top">
-        <div class="pic"><img src="img/jack-cheese.jpg" width="260" height="260" alt="365 Organic Shredded Monterey Jack bag" loading="lazy"></div>
+        <div class="pic"><img src="img/jack-cheese.webp" width="260" height="260" alt="365 Organic Shredded Monterey Jack bag" loading="lazy"></div>
         <b>Jack Cheese</b><small>365 Organic Monterey Jack. Melts right in.</small>
         <span class="pill melty">Melty</span>
       </div>
@@ -187,43 +190,43 @@
     <p class="lead">Every ingredient is organic. Here’s exactly what went into the pot. <b class="pot">Quantities are for one large 8-quart pot.</b></p>
     <ul class="ingredients">
       <li class="ing">
-        <div class="pic"><img src="img/ground-turkey.jpg" width="260" height="260" alt="Mary's Organic Ground Turkey package" loading="lazy"><span class="qty" aria-label="2 packages">2×</span></div>
+        <div class="pic"><img src="img/ground-turkey.webp" width="260" height="260" alt="Mary's Organic Ground Turkey package" loading="lazy"><span class="qty" aria-label="2 packages">2×</span></div>
         <div><h3>Turkey</h3><p>Mary’s Organic Ground Turkey, 2 × 16 oz: the “carne” in this chili.</p><span class="org">Organic</span></div>
       </li>
       <li class="ing">
-        <div class="pic"><img src="img/diced-tomatoes.jpg" width="260" height="260" alt="365 Organic Diced Tomatoes can" loading="lazy"><span class="qty" aria-label="4 cans">4×</span></div>
+        <div class="pic"><img src="img/diced-tomatoes.webp" width="260" height="260" alt="365 Organic Diced Tomatoes can" loading="lazy"><span class="qty" aria-label="4 cans">4×</span></div>
         <div><h3>Diced Tomatoes</h3><p>365 Organic Diced Tomatoes, 4 × 28 oz cans.</p><span class="org">Organic</span></div>
       </li>
       <li class="ing">
-        <div class="pic"><img src="img/tomato-paste.jpg" width="260" height="260" alt="365 Organic Tomato Paste can" loading="lazy"></div>
+        <div class="pic"><img src="img/tomato-paste.webp" width="260" height="260" alt="365 Organic Tomato Paste can" loading="lazy"></div>
         <div><h3>Tomato Paste</h3><p>365 Organic Tomato Paste, 6 oz can.</p><span class="org">Organic</span></div>
       </li>
       <li class="ing">
-        <div class="pic"><img src="img/kidney-beans.jpg" width="260" height="260" alt="365 Organic Dark Red Kidney Beans can" loading="lazy"><span class="qty" aria-label="4 cans">4×</span></div>
+        <div class="pic"><img src="img/kidney-beans.webp" width="260" height="260" alt="365 Organic Dark Red Kidney Beans can" loading="lazy"><span class="qty" aria-label="4 cans">4×</span></div>
         <div><h3>Beans</h3><p>365 Organic Dark Red Kidney Beans, 4 × 15.5 oz cans.</p><span class="org">Organic</span></div>
       </li>
       <li class="ing">
-        <div class="pic"><img src="img/corn.jpg" width="260" height="260" alt="365 Organic Whole Kernel Corn can" loading="lazy"></div>
+        <div class="pic"><img src="img/corn.webp" width="260" height="260" alt="365 Organic Whole Kernel Corn can" loading="lazy"></div>
         <div><h3>Corn</h3><p>365 Organic Whole Kernel Corn, no salt added.</p><span class="org">Organic</span></div>
       </li>
       <li class="ing">
-        <div class="pic"><img src="img/red-bell-pepper.jpg" width="260" height="260" alt="Red bell pepper" loading="lazy"><span class="qty" aria-label="2 peppers">2×</span></div>
+        <div class="pic"><img src="img/red-bell-pepper.webp" width="260" height="260" alt="Red bell pepper" loading="lazy"><span class="qty" aria-label="2 peppers">2×</span></div>
         <div><h3>Red Peppers</h3><p>2 fresh organic red bell peppers.</p><span class="org">Organic</span></div>
       </li>
       <li class="ing">
-        <div class="pic fill"><img src="img/onion.jpg" width="211" height="260" alt="Watercolor illustration of a halved onion" loading="lazy"></div>
+        <div class="pic fill"><img src="img/onion.webp" width="211" height="260" alt="Watercolor illustration of a halved onion" loading="lazy"></div>
         <div><h3>Onion</h3><p>Fresh organic onion, softened until sweet.</p><span class="org">Organic</span></div>
       </li>
       <li class="ing">
-        <div class="pic"><img src="img/mild-chili-seasoning.jpg" width="177" height="260" alt="Simply Organic Mild Chili Seasoning Mix packet" loading="lazy"></div>
+        <div class="pic"><img src="img/mild-chili-seasoning.webp" width="177" height="260" alt="Simply Organic Mild Chili Seasoning Mix packet" loading="lazy"></div>
         <div><h3>Mild Chili Seasoning</h3><p>Simply Organic Mild Chili Seasoning Mix: all flavor, gentle heat.</p><span class="org">Organic</span></div>
       </li>
       <li class="ing">
-        <div class="pic"><img src="img/spicy-chili-seasoning.jpg" width="176" height="260" alt="Simply Organic Spicy Chili Seasoning Mix packet" loading="lazy"></div>
+        <div class="pic"><img src="img/spicy-chili-seasoning.webp" width="176" height="260" alt="Simply Organic Spicy Chili Seasoning Mix packet" loading="lazy"></div>
         <div><h3>Spicy Chili Seasoning</h3><p>Simply Organic Spicy Chili Seasoning Mix, for extra spice to taste at the end.</p><span class="org">Organic</span></div>
       </li>
       <li class="ing">
-        <div class="pic"><img src="img/olive-oil.jpg" width="260" height="260" alt="Bono Organic Sicilian Extra Virgin Olive Oil bottle" loading="lazy"></div>
+        <div class="pic"><img src="img/olive-oil.webp" width="260" height="260" alt="Bono Organic Sicilian Extra Virgin Olive Oil bottle" loading="lazy"></div>
         <div><h3>Olive Oil</h3><p>Bono Organic Sicilian Extra Virgin Olive Oil, for cooking the turkey, onion and peppers.</p><span class="org">Organic</span></div>
       </li>
     </ul>
