@@ -15,16 +15,18 @@ describe('the /chili mini-site', () => {
     expect(response.text).toContain('<html lang="en">');
   });
 
+  // Covers the CSS background (border.webp), every srcset entry and the
+  // og:image (chili.jpg), not only <img src>.
   it('serves the images the page references', async () => {
     const app = createApp();
     const page = await request(app).get('/chili/');
-    const images = [...new Set(page.text.match(/img\/[a-z0-9-]+\.jpg/g) ?? [])];
+    const images = [...new Set(page.text.match(/img\/[a-z0-9-]+\.(?:jpg|webp)/g) ?? [])];
 
     expect(images.length).toBeGreaterThan(0);
     for (const image of images) {
       const response = await request(app).get(`/chili/${image}`);
       expect(response.status, image).toBe(200);
-      expect(response.headers['content-type'], image).toMatch(/jpeg/);
+      expect(response.headers['content-type'], image).toMatch(/image\/(jpeg|webp)/);
     }
   });
 
