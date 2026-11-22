@@ -18,6 +18,10 @@ this file is where notes are written *before* a release.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
+- New public mini-site at `/chili` (Chili con carne), for now a placeholder page.
+  Its QR code (`sites/chili/chili-qr.png`, `.svg`) points at
+  `https://klaushofrichter.net/chili`, which forwards to the www address.
+
 - Hostinger card (signed-in dashboard): a new background picture, Hostinger's
   own banner, in place of the old one.
 - CI: the dependency audit lets one advisory through until 2026-12-17:

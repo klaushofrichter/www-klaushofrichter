@@ -14,6 +14,7 @@ RUN npm ci --omit=dev
 COPY --from=builder /app/dist ./dist
 COPY CHANGELOG.md ./
 COPY assets ./assets
+COPY sites ./sites
 # Downloads served at /public. Baked in rather than mounted: they change
 # only when someone commits a file, which is a deploy anyway.
 COPY public ./public
