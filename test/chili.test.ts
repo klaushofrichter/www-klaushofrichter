@@ -11,8 +11,21 @@ describe('the /chili mini-site', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers['content-type']).toMatch(/html/);
-    expect(response.text).toContain('<h1>Chili con carne</h1>');
+    expect(response.text).toContain('<h1>Chili<span class="con">con');
     expect(response.text).toContain('<html lang="en">');
+  });
+
+  it('serves the images the page references', async () => {
+    const app = createApp();
+    const page = await request(app).get('/chili/');
+    const images = [...new Set(page.text.match(/img\/[a-z0-9-]+\.jpg/g) ?? [])];
+
+    expect(images.length).toBeGreaterThan(0);
+    for (const image of images) {
+      const response = await request(app).get(`/chili/${image}`);
+      expect(response.status, image).toBe(200);
+      expect(response.headers['content-type'], image).toMatch(/jpeg/);
+    }
   });
 
   it('redirects /chili (the QR code address) to /chili/', async () => {
