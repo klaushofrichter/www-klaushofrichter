@@ -82,9 +82,12 @@
 
   .ingredients{list-style:none;margin:0;padding:0;display:grid;gap:10px}
   .ing{display:flex;gap:14px;align-items:center;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:10px 14px 10px 10px}
-  .ing .pic{flex:none;width:76px;height:76px;background:#fff;border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .ing .pic{position:relative;flex:none;width:76px;height:76px;background:#fff;border-radius:12px;display:flex;align-items:center;justify-content:center}
+  .ing .pic.fill{overflow:hidden}
   .ing .pic img{max-width:88%;max-height:88%;object-fit:contain}
   .ing .pic.fill img{max-width:100%;max-height:100%;width:100%;height:100%;object-fit:cover}
+  .qty{position:absolute;right:-4px;bottom:-4px;min-width:30px;height:24px;padding:0 6px;border-radius:12px;background:var(--paprika);color:#fff;
+    font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;border:2px solid var(--paper)}
   .ing h3{margin:0;font-family:"Fraunces",serif;font-weight:600;font-size:19px;line-height:1.15}
   .ing p{margin:2px 0 0;font-size:14px;color:var(--muted);line-height:1.35}
   .org{display:inline-block;margin-top:5px;font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--sage);border:1.5px solid var(--sage);border-radius:99px;padding:1px 7px}
@@ -181,24 +184,28 @@
     <p class="lead">Every ingredient is organic. Here’s exactly what went into the pot.</p>
     <ul class="ingredients">
       <li class="ing">
-        <div class="pic"><img src="img/ground-turkey.jpg" alt="Mary's Organic Ground Turkey package" loading="lazy"></div>
-        <div><h3>Turkey</h3><p>Mary’s Organic Ground Turkey: the “carne” in this chili.</p><span class="org">Organic</span></div>
+        <div class="pic"><img src="img/ground-turkey.jpg" alt="Mary's Organic Ground Turkey package" loading="lazy"><span class="qty" aria-label="2 packages">2×</span></div>
+        <div><h3>Turkey</h3><p>Mary’s Organic Ground Turkey, 2 × 16 oz: the “carne” in this chili.</p><span class="org">Organic</span></div>
       </li>
       <li class="ing">
-        <div class="pic"><img src="img/diced-tomatoes.jpg" alt="365 Organic Diced Tomatoes can" loading="lazy"></div>
-        <div><h3>Tomato</h3><p>365 Organic Diced Tomatoes and 365 Organic Tomato Paste.</p><span class="org">Organic</span></div>
+        <div class="pic"><img src="img/diced-tomatoes.jpg" alt="365 Organic Diced Tomatoes can" loading="lazy"><span class="qty" aria-label="4 cans">4×</span></div>
+        <div><h3>Diced Tomatoes</h3><p>365 Organic Diced Tomatoes, 4 × 28 oz cans.</p><span class="org">Organic</span></div>
       </li>
       <li class="ing">
-        <div class="pic"><img src="img/kidney-beans.jpg" alt="365 Organic Dark Red Kidney Beans can" loading="lazy"></div>
-        <div><h3>Beans</h3><p>365 Organic Dark Red Kidney Beans.</p><span class="org">Organic</span></div>
+        <div class="pic"><img src="img/tomato-paste.jpg" alt="365 Organic Tomato Paste can" loading="lazy"></div>
+        <div><h3>Tomato Paste</h3><p>365 Organic Tomato Paste, 6 oz can.</p><span class="org">Organic</span></div>
+      </li>
+      <li class="ing">
+        <div class="pic"><img src="img/kidney-beans.jpg" alt="365 Organic Dark Red Kidney Beans can" loading="lazy"><span class="qty" aria-label="4 cans">4×</span></div>
+        <div><h3>Beans</h3><p>365 Organic Dark Red Kidney Beans, 4 × 15.5 oz cans.</p><span class="org">Organic</span></div>
       </li>
       <li class="ing">
         <div class="pic"><img src="img/corn.jpg" alt="365 Organic Whole Kernel Corn can" loading="lazy"></div>
         <div><h3>Corn</h3><p>365 Organic Whole Kernel Corn, no salt added.</p><span class="org">Organic</span></div>
       </li>
       <li class="ing">
-        <div class="pic"><img src="img/red-bell-pepper.jpg" alt="Red bell pepper" loading="lazy"></div>
-        <div><h3>Red Peppers</h3><p>Fresh organic red bell peppers.</p><span class="org">Organic</span></div>
+        <div class="pic"><img src="img/red-bell-pepper.jpg" alt="Red bell pepper" loading="lazy"><span class="qty" aria-label="2 peppers">2×</span></div>
+        <div><h3>Red Peppers</h3><p>2 fresh organic red bell peppers.</p><span class="org">Organic</span></div>
       </li>
       <li class="ing">
         <div class="pic fill"><img src="img/onion.jpg" alt="Watercolor illustration of a halved onion" loading="lazy"></div>
