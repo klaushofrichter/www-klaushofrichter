@@ -18,6 +18,8 @@ this file is where notes are written *before* a release.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
+- `/chili`: the Heat, Cool and Melty badges under the toppings sit at the bottom of their cards, so they line up.
+
 - `/chili`: cilantro (Cal Organic) joins the ingredient list, with a watercolor sprig from the page border as its picture.
 
 - `/chili`: the printable 4 × 6 in table card can be downloaded from the bottom of the page, as PDF or JPEG (600 dpi, 2.2 MB each), with a small preview.
