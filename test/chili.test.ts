@@ -30,6 +30,22 @@ describe('the /chili mini-site', () => {
     }
   });
 
+  // The fonts are self-hosted (the @font-face rules and the preload), so a
+  // missing file would silently fall back to system fonts.
+  it('serves the fonts the page references, from its own folder', async () => {
+    const app = createApp();
+    const page = await request(app).get('/chili/');
+    const fonts = [...new Set(page.text.match(/fonts\/[a-z0-9-]+\.woff2/g) ?? [])];
+
+    expect(fonts.length).toBe(4);
+    expect(page.text).not.toContain('fonts.googleapis.com');
+    for (const font of fonts) {
+      const response = await request(app).get(`/chili/${font}`);
+      expect(response.status, font).toBe(200);
+      expect(response.headers['content-type'], font).toMatch(/font\/woff2/);
+    }
+  });
+
   it('redirects /chili (the QR code address) to /chili/', async () => {
     const response = await request(createApp()).get('/chili');
 
