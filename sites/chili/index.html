@@ -11,15 +11,17 @@
 <meta property="og:image" content="https://www.klaushofrichter.net/chili/img/chili.jpg">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌶️</text></svg>">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="image" href="img/border.webp" type="image/webp" fetchpriority="high">
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,800;1,500&family=Nunito+Sans:wght@400;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-<!-- Caveat is subset to the characters of the .sub, h2 and .enjoy texts (text=...).
-     Adding new text in Caveat? Add its characters to this URL, or they fall back. -->
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap&text=%20%21%26EHMSWadehijkmnorstuvwy%E2%80%99%E2%80%A6" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,800;1,500&family=Nunito+Sans:wght@400;600;700;800&display=swap"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap&text=%20%21%26EHMSWadehijkmnorstuvwy%E2%80%99%E2%80%A6"></noscript>
+<link rel="preload" as="font" href="fonts/fraunces.woff2" type="font/woff2" crossorigin>
 <style>
+  /* Self-hosted fonts (OFL), subset to Latin with fontTools. Variable weight ranges
+     are trimmed to what the page uses: Fraunces 600-800, Nunito Sans 400-800.
+     Caveat 700 holds only the glyphs of the .sub, h2 and .enjoy texts. Adding new
+     Caveat text? Re-subset caveat.woff2 to include its characters, or they fall back. */
+  @font-face{font-family:"Fraunces";font-style:normal;font-weight:600 800;font-display:swap;src:url(fonts/fraunces.woff2) format("woff2")}
+  @font-face{font-family:"Fraunces";font-style:italic;font-weight:500;font-display:swap;src:url(fonts/fraunces-italic.woff2) format("woff2")}
+  @font-face{font-family:"Nunito Sans";font-style:normal;font-weight:400 800;font-display:swap;src:url(fonts/nunito-sans.woff2) format("woff2")}
+  @font-face{font-family:"Caveat";font-style:normal;font-weight:700;font-display:swap;src:url(fonts/caveat.woff2) format("woff2")}
   :root{
     color-scheme: light;
     --cream:#f7ecd9; --paper:#fffaf1; --ink:#4a2318; --muted:#7a5546;
