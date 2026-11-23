@@ -16,7 +16,7 @@
 <style>
   /* Self-hosted fonts (OFL), subset to Latin with fontTools. Variable weight ranges
      are trimmed to what the page uses: Fraunces 600-800, Nunito Sans 400-800.
-     Caveat 700 holds only the glyphs of the .sub, h2 and .enjoy texts. Adding new
+     Caveat 700 holds only the glyphs of the .sub and h2 texts. Adding new
      Caveat text? Re-subset caveat.woff2 to include its characters, or they fall back. */
   @font-face{font-family:"Fraunces";font-style:normal;font-weight:600 800;font-display:swap;src:url(fonts/fraunces.woff2) format("woff2")}
   @font-face{font-family:"Fraunces";font-style:italic;font-weight:500;font-display:swap;src:url(fonts/fraunces-italic.woff2) format("woff2")}
@@ -72,12 +72,6 @@
   h2{font-family:"Caveat",cursive;font-weight:700;font-size:36px;line-height:1;color:var(--paprika);margin:0 0 4px;text-align:center}
   .lead{text-align:center;color:var(--muted);margin:0 auto 18px;max-width:34ch}
 
-  .steps{list-style:none;margin:0;padding:0;display:grid;gap:10px;counter-reset:s}
-  .steps li{display:flex;align-items:center;gap:14px;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;font-weight:700;font-size:17px}
-  .steps li::before{counter-increment:s;content:counter(s);flex:none;width:34px;height:34px;border-radius:50%;background:var(--paprika);color:#fff;
-    display:flex;align-items:center;justify-content:center;font-weight:800}
-  .steps .enjoy{font-family:"Caveat",cursive;font-weight:700;font-size:28px;color:var(--paprika);line-height:1}
-
   .toppings{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
   .top{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:12px 8px 14px;text-align:center;display:flex;flex-direction:column;align-items:center}
   .top .pic{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:#fff;border-radius:12px;margin-bottom:10px}
@@ -115,9 +109,6 @@
   .card-s b{font-family:"Fraunces",serif;font-weight:600;font-size:18px}
   .card-s p{margin:2px 0 0;font-size:14.5px;color:var(--muted);line-height:1.4}
 
-  .note{margin:0 16px;background:var(--sage);color:#fff;border-radius:var(--radius);padding:18px;text-align:center}
-  .note b{font-family:"Fraunces",serif;font-size:20px;display:block;margin-bottom:2px}
-  .note p{margin:0;font-size:15px;opacity:.95}
 
   footer{padding:28px 16px calc(32px + env(safe-area-inset-bottom));text-align:center;color:var(--muted);font-size:13px}
   footer .home{display:inline-block;margin-bottom:14px;padding:12px 20px;border-radius:99px;background:var(--ink);color:var(--cream);text-decoration:none;font-weight:800;font-size:15px}
@@ -156,38 +147,6 @@
   </div>
 
   <section>
-    <h2>How to enjoy</h2>
-    <p class="lead">Want to cook it yourself? <a href="#recipe">The recipe is below.</a></p>
-    <ol class="steps">
-      <li>Grab a bowl of chili</li>
-      <li>Add your extras</li>
-      <li><span class="enjoy">Enjoy!</span></li>
-    </ol>
-  </section>
-
-  <section style="padding-top:8px">
-    <h2>Make it yours</h2>
-    <p class="lead">The chili is mild on purpose. Turn it up (or cool it down) with these.</p>
-    <div class="toppings">
-      <div class="top">
-        <div class="pic"><img src="img/cholula.webp" width="260" height="260" alt="Cholula Original Hot Sauce bottle" loading="lazy"></div>
-        <b>Hot Sauce</b><small>Cholula Original. A few dashes go a long way.</small>
-        <span class="pill hot">Heat</span>
-      </div>
-      <div class="top">
-        <div class="pic"><img src="img/sour-cream.webp" width="260" height="107" alt="Organic Valley Organic Sour Cream tub" loading="lazy"></div>
-        <b>Sour Cream</b><small>Organic Valley. Cool and creamy.</small>
-        <span class="pill cool">Cool</span>
-      </div>
-      <div class="top">
-        <div class="pic"><img src="img/jack-cheese.webp" width="260" height="260" alt="365 Organic Shredded Monterey Jack bag" loading="lazy"></div>
-        <b>Jack Cheese</b><small>365 Organic Monterey Jack. Melts right in.</small>
-        <span class="pill melty">Melty</span>
-      </div>
-    </div>
-  </section>
-
-  <section style="padding-top:8px">
     <h2>What’s inside</h2>
     <p class="lead">Every ingredient is organic. Here’s exactly what went into the pot. <b class="pot">Quantities are for one large 8-quart pot.</b></p>
     <ul class="ingredients">
@@ -249,6 +208,28 @@
   </section>
 
   <section style="padding-top:8px">
+    <h2>Make it yours</h2>
+    <p class="lead">The chili is mild on purpose. Turn it up (or cool it down) with these.</p>
+    <div class="toppings">
+      <div class="top">
+        <div class="pic"><img src="img/habanero-sauce.webp" width="260" height="260" alt="O’Brothers Organic Habanero Pepper Sauce bottle" loading="lazy"></div>
+        <b>Hot Sauce</b><small>O’Brothers Organic Habanero. A few dashes go a long way.</small>
+        <span class="pill hot">Heat</span>
+      </div>
+      <div class="top">
+        <div class="pic"><img src="img/sour-cream.webp" width="260" height="107" alt="Organic Valley Organic Sour Cream tub" loading="lazy"></div>
+        <b>Sour Cream</b><small>Organic Valley. Cool and creamy.</small>
+        <span class="pill cool">Cool</span>
+      </div>
+      <div class="top">
+        <div class="pic"><img src="img/jack-cheese.webp" width="260" height="260" alt="365 Organic Shredded Monterey Jack bag" loading="lazy"></div>
+        <b>Jack Cheese</b><small>365 Organic Monterey Jack. Melts right in.</small>
+        <span class="pill melty">Melty</span>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:8px">
     <h2>Serve &amp; store</h2>
     <div class="serve">
       <div class="card-s">
@@ -269,11 +250,6 @@
       </div>
     </div>
   </section>
-
-  <div class="note">
-    <b>Want it spicy?</b>
-    <p>The pot stays mild so everyone can enjoy it. Heat lives in the hot sauce bottle.</p>
-  </div>
 
   <footer>
     <a class="home" href="/">← Back to klaushofrichter.net</a>
