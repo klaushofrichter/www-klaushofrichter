@@ -46,6 +46,21 @@ describe('the /chili mini-site', () => {
     }
   });
 
+  it('offers the printable table card as PDF and JPEG', async () => {
+    const app = createApp();
+    const page = await request(app).get('/chili/');
+
+    for (const [file, type] of [
+      ['card/chili-card-4x6.pdf', /application\/pdf/],
+      ['card/chili-card-4x6.jpg', /image\/jpeg/],
+    ] as const) {
+      expect(page.text, file).toContain(`href="${file}" download`);
+      const response = await request(app).get(`/chili/${file}`);
+      expect(response.status, file).toBe(200);
+      expect(response.headers['content-type'], file).toMatch(type);
+    }
+  });
+
   it('redirects /chili (the QR code address) to /chili/', async () => {
     const response = await request(createApp()).get('/chili');
 
