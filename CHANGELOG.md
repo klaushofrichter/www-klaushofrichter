@@ -18,6 +18,8 @@ this file is where notes are written *before* a release.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
+- `/chili`: the hot sauce is now O’Brothers Organic Habanero (was Cholula). “Make it yours” moves down to sit just before “Serve & store”, and the “How to enjoy” steps and the “Want it spicy?” note are gone.
+
 - `/chili`: fonts are self-hosted instead of loaded from Google Fonts, so the page no longer opens two extra connections. They are subset to Latin with their weight ranges trimmed (about 64 KB, was about 104 KB). The hero border is 43 KB (was 62 KB). The page weighs about 274 KB (was about 336 KB).
 
 - New public card on the home page: Chili con “Carne”, linking to the /chili
