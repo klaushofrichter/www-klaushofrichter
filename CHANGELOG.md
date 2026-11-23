@@ -20,6 +20,8 @@ this file is where notes are written *before* a release.
 
 - `/chili`: the seasoning goes in while cooking: a whole packet of mild plus half a packet of spicy (a whole packet of spicy works too, a bit hotter but still mild). The spicy mix is no longer an at-the-end add-on.
 
+- `/chili`: the Heat, Cool and Melty badges under the toppings sit at the bottom of their cards, so they line up.
+
 - `/chili`: cilantro (Cal Organic) joins the ingredient list, with a watercolor sprig from the page border as its picture.
 
 - `/chili`: the printable 4 × 6 in table card can be downloaded from the bottom of the page, as PDF or JPEG (600 dpi, 2.2 MB each), with a small preview.
