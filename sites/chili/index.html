@@ -110,6 +110,14 @@
   .card-s p{margin:2px 0 0;font-size:14.5px;color:var(--muted);line-height:1.4}
 
 
+  /* printable card download */
+  .dl{margin:0 16px;display:flex;gap:16px;align-items:center;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:14px}
+  .dl img{flex:none;width:96px;height:144px;border-radius:6px;border:1px solid var(--line)}
+  .dl h2{font-family:"Fraunces",serif;font-weight:600;font-size:19px;line-height:1.2;color:var(--ink);text-align:left;margin:0}
+  .dl p{margin:4px 0 10px;font-size:14px;color:var(--muted);line-height:1.4}
+  .dl .btns{display:flex;gap:8px;flex-wrap:wrap}
+  .dl .btns a{display:inline-block;padding:8px 14px;border-radius:99px;background:var(--paprika);color:#fff;text-decoration:none;font-weight:800;font-size:14px}
+  .dl .btns a small{font-weight:600;opacity:.9}
   footer{padding:28px 16px calc(32px + env(safe-area-inset-bottom));text-align:center;color:var(--muted);font-size:13px}
   footer .home{display:inline-block;margin-bottom:14px;padding:12px 20px;border-radius:99px;background:var(--ink);color:var(--cream);text-decoration:none;font-weight:800;font-size:15px}
   footer p{margin:4px 0}
@@ -250,6 +258,18 @@
       </div>
     </div>
   </section>
+
+  <aside class="dl" aria-labelledby="dl-title">
+    <img src="img/card-thumb.webp" width="240" height="360" alt="Preview of the printed 4 by 6 inch Chili con Carne table card" loading="lazy">
+    <div>
+      <h2 id="dl-title">The table card</h2>
+      <p>The card that sits next to the pot. Print it at 4 × 6 in.</p>
+      <div class="btns">
+        <a href="card/chili-card-4x6.pdf" download>PDF <small>2.2 MB</small></a>
+        <a href="card/chili-card-4x6.jpg" download>JPEG <small>2.2 MB</small></a>
+      </div>
+    </div>
+  </aside>
 
   <footer>
     <a class="home" href="/">← Back to klaushofrichter.net</a>
