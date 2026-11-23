@@ -18,6 +18,8 @@ this file is where notes are written *before* a release.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
+- `/chili`: cilantro (Cal Organic) joins the ingredient list, with a watercolor sprig from the page border as its picture.
+
 - `/chili`: the printable 4 × 6 in table card can be downloaded from the bottom of the page, as PDF or JPEG (600 dpi, 2.2 MB each), with a small preview.
 
 - `/chili`: the hot sauce is now O’Brothers Organic Habanero (was Cholula). “Make it yours” moves down to sit just before “Serve & store”, and the “How to enjoy” steps and the “Want it spicy?” note are gone.
