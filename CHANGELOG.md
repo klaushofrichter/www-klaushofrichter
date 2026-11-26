@@ -18,6 +18,8 @@ this file is where notes are written *before* a release.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
+- The Cloudflare and UptimeRobot cards have new pictures.
+
 - New public card on the home page: Macro Photography, linking to https://macro.mystrikingly.com/.
 
 - `/chili`: the seasoning goes in while cooking: a whole packet of mild plus half a packet of spicy (a whole packet of spicy works too, a bit hotter but still mild). The spicy mix is no longer an at-the-end add-on.
