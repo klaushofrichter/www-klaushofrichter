@@ -82,6 +82,14 @@ export const links: Link[] = [
     cardColor: CARD_COLORS.stone,
   },
   {
+    id: 'macro',
+    title: 'Macro Photography',
+    url: 'https://macro.mystrikingly.com/',
+    abstract: 'Close-up photographs, taken with a macro lens.',
+    gradient: 'linear-gradient(135deg, #111827, #9ca3af)',
+    cardColor: CARD_COLORS.slate,
+  },
+  {
     id: 'christina-art',
     title: 'Christina Schwarz Art',
     url: 'https://christinaschwarz.art',
