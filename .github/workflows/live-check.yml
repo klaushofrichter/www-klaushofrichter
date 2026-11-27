@@ -81,6 +81,12 @@ jobs:
           LH_OUT: lighthouse-chili
         run: scripts/lighthouse-gate.sh https://www.klaushofrichter.net/chili/
 
+      # The /chocolate-cake mini-site, gated like /chili from its first release.
+      - name: Lighthouse on the /chocolate-cake mini-site
+        env:
+          LH_OUT: lighthouse-chocolate-cake
+        run: scripts/lighthouse-gate.sh https://www.klaushofrichter.net/chocolate-cake/
+
       - name: Keep the reports when something failed
         if: failure()
         uses: actions/upload-artifact@v7
@@ -91,4 +97,5 @@ jobs:
             test-results/
             lighthouse-report.report.html
             lighthouse-chili.report.html
+            lighthouse-chocolate-cake.report.html
           retention-days: 30

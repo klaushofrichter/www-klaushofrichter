@@ -32,6 +32,7 @@ export function createApp(options: AppOptions = {}): Express {
   // Small public mini-sites, one folder each under sites/ (a folder per URL:
   // /chili is sites/chili). /chili redirects to /chili/ so relative links work.
   app.use('/chili', express.static(path.join(__dirname, '..', 'sites', 'chili')));
+  app.use('/chocolate-cake', express.static(path.join(__dirname, '..', 'sites', 'chocolate-cake')));
   app.use(publicRouter);
   app.use(createSurveyRouter(surveyDeps));
   app.use(createDashboardRouter(surveyDeps));
