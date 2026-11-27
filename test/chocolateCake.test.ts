@@ -14,7 +14,8 @@ describe('the /chocolate-cake mini-site', () => {
     expect(response.headers['content-type']).toMatch(/html/);
     expect(response.text).toContain('<html lang="en">');
     expect(response.text).toContain('Chocolate <span class="cherry">Cherry</span> Cake');
-    expect(response.text).toContain('This is an adapted recipe that I altered to my liking.');
+    // Klaus asked for the "adapted recipe" note to be removed (2026-11-27).
+    expect(response.text).not.toContain('adapted recipe');
   });
 
   // Quantities are Klaus's recipe as given; a typo here bakes a different cake.

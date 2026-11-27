@@ -18,6 +18,8 @@ this file is where notes are written *before* a release.
      notes. Keep prose out of it unless you mean it to be published. -->
 ## [Unreleased]
 
+- `/chocolate-cake`: the "adapted recipe" note is gone.
+
 - New public mini-site at `/chocolate-cake`: Soft & Moist Gluten-Free Chocolate Cherry Cake, Klaus's adapted recipe. A mobile-first page in its own chocolate-and-cherry look with the full ingredient lists (dry, wet, ganache, decoration, quantities as written), the eleven baking steps, the ganache, tips, and storage and serving. Watercolor-style illustrations (generated with Higgsfield, metadata stripped), all WebP with phone-sized widths and the hero preloaded; self-hosted subset fonts (Bodoni Moda, Nunito Sans, about 42 KB). The page weighs about 180 KB with every picture loaded (153 KB at first load). Lighthouse on a phone profile: 100/100/100/100 locally; axe (WCAG 2.2 AA) passes in both color schemes. Its QR code (`sites/chocolate-cake/chocolate-cake-qr.png`, `.svg`) points at `https://klaushofrichter.net/chocolate-cake`, which forwards to the www address. The live check now audits it like `/chili`.
 
 - New public card on the home page: Chocolate Cherry Cake, linking to the /chocolate-cake mini-site, with its watercolor banner as the picture.
