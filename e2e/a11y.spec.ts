@@ -44,6 +44,17 @@ for (const scheme of ['light', 'dark'] as const) {
   });
 }
 
+// The /chocolate-cake mini-site (sites/chocolate-cake), audited like /chili
+// from its first release.
+for (const scheme of ['light', 'dark'] as const) {
+  test(`@live the /chocolate-cake mini-site meets WCAG 2.2 AA (${scheme})`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' });
+    await page.goto('/chocolate-cake/');
+    await scrollThrough(page);
+    await audit(page);
+  });
+}
+
 test('@live the 404 page meets WCAG 2.2 AA', async ({ page }) => {
   await page.goto('/does-not-exist');
   await audit(page);

@@ -98,6 +98,14 @@ export const links: Link[] = [
     cardColor: CARD_COLORS.ember,
   },
   {
+    id: 'chocolate-cake',
+    title: 'Chocolate Cherry Cake',
+    url: 'https://www.klaushofrichter.net/chocolate-cake/',
+    abstract: 'A soft, moist, gluten-free chocolate cake with cherries and ganache: ingredients and recipe.',
+    gradient: 'linear-gradient(135deg, #3b1f17, #a3122a)',
+    cardColor: CARD_COLORS.ember,
+  },
+  {
     id: 'cams',
     title: 'Cams',
     url: 'https://cams.skylar.technology',
